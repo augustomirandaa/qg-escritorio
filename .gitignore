@@ -1,0 +1,63 @@
+# Secrets · NUNCA commitar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env.venv
+*.egg-info/
+.pytest_cache/
+
+# Build outputs
+dist/
+build/
+*.bundle.js
+
+# Editor / OS
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Banco local (testes)
+*.sqlite
+*.db
+data/
+storage/
+
+# Docker volumes
+.docker-volumes/
+
+# Claude Code local
+.claude-code/
+.claude/
+
+# Sessões locais de chat (pra não vazar conversa)
+sessions/

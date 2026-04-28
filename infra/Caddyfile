@@ -1,0 +1,73 @@
+# Caddyfile · reverse proxy + TLS automático
+#
+# Variáveis vêm do .env via docker-compose
+#   - DOMAIN: domínio principal (ex: qg.dominio.com)
+#   - EMAIL_TLS: email pra Let's Encrypt (avisos de expiração)
+
+{
+	email {$EMAIL_TLS}
+	# Logs estruturados em JSON pro stdout (capturados pelo docker)
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+}
+
+# ─── chat principal · Anything LLM ─────────────────────────────────────────
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Headers de segurança básicos
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Remove header revelador
+		-Server
+	}
+
+	reverse_proxy anythingllm:3001 {
+		# Anything LLM precisa de WebSocket pra streaming
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# ─── API · webhooks dos MCPs ───────────────────────────────────────────────
+# Quando os MCPs forem implementados (WhatsApp, etc), descomenta este bloco
+# e ajusta os subpaths conforme a arquitetura:
+#
+# api.{$DOMAIN} {
+# 	encode zstd gzip
+#
+# 	header {
+# 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+# 		X-Content-Type-Options "nosniff"
+# 	}
+#
+# 	# WhatsApp Cloud API webhook
+# 	handle_path /webhooks/whatsapp* {
+# 		reverse_proxy whatsapp-mcp:8080
+# 	}
+#
+# 	# Outros webhooks/MCPs
+# 	handle_path /sync/notion* {
+# 		reverse_proxy notion-sync:8080
+# 	}
+#
+# 	# Default · 404 pra paths não mapeados
+# 	respond 404
+# }
