@@ -12,7 +12,7 @@ import { PROJETOS, PROJETO_IDS } from "../data/projetos";
     <div class="matrix">
       <div class="m-h m-h-area">Agente</div>
       {PROJETO_IDS.map((id) => (
-        <div class="m-h" title={PROJETOS[id].apelido}>{id}</div>
+        <div class="m-h" title={PROJETOS[id].secreto ? "Projeto protegido" : PROJETOS[id].apelido}>{id}</div>
       ))}
       {MATRIZ.map((bloco) => (
         <>
@@ -52,7 +52,9 @@ import { PROJETOS, PROJETO_IDS } from "../data/projetos";
         class="block bg-surface border-[0.5px] border-line rounded-md px-3 py-2 hover:bg-muted transition-colors"
       >
         <div class="text-[14px] font-medium leading-tight">{id}</div>
-        <div class="text-[10px] text-soft mt-0.5 leading-tight">{PROJETOS[id].apelido}</div>
+        <div class="text-[10px] text-soft mt-0.5 leading-tight">
+          {PROJETOS[id].secreto ? "protegido" : PROJETOS[id].apelido}
+        </div>
       </a>
     ))}
   </div>

@@ -25,6 +25,9 @@ const conexoesConectadas = conexoes.filter((c) => c.status === "conectado").leng
 const conexoesPendentes = conexoes.filter((c) => c.status === "pendente").length;
 const conexoesPlanejadas = conexoes.filter((c) => c.status === "planejado").length;
 
+const baseTitle = p.secreto ? `Projeto ${p.id}` : p.titulo;
+const baseSubtitle = p.secreto ? "Conteúdo restrito · senha necessária" : p.meta;
+
 const gruposEnvolvidos = [
   { titulo: "Clientes", tipos: ["cliente"] as const },
   { titulo: "Líderes", tipos: ["socio"] as const },
@@ -37,20 +40,30 @@ const gruposEnvolvidos = [
   .filter((g) => g.pessoas.length > 0);
 ---
 
-<Base title={p.titulo} subtitle={p.meta}>
+<Base title={baseTitle} subtitle={baseSubtitle}>
   <nav class="flex items-center gap-1.5 mb-4 flex-wrap">
     {PROJETO_IDS.map((pid) => (
       <a
         href={`/projetos/${pid}`}
         class:list={[
-          "text-[12px] px-3 py-1.5 rounded-md transition-colors border-[0.5px]",
+          "text-[12px] px-3 py-1.5 rounded-md transition-colors border-[0.5px] inline-flex items-center gap-1.5",
           pid === id
             ? "bg-info-bg text-info-text border-info-border font-medium"
             : "bg-surface text-soft border-line hover:bg-muted hover:text-base"
         ]}
       >
-        <span class="font-medium mr-1.5">{pid}</span>
-        <span class="text-[11px]">{PROJETOS[pid].apelido}</span>
+        <span class="font-medium">{pid}</span>
+        {PROJETOS[pid].secreto ? (
+          <span class="text-[11px] inline-flex items-center gap-1 text-warning-text">
+            <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            protegido
+          </span>
+        ) : (
+          <span class="text-[11px]">{PROJETOS[pid].apelido}</span>
+        )}
       </a>
     ))}
   </nav>
@@ -64,9 +77,9 @@ const gruposEnvolvidos = [
         </svg>
         <span class="text-[12px] font-medium uppercase tracking-wider">Projeto protegido</span>
       </div>
-      <h2 class="text-[17px] font-medium leading-tight m-0 mb-1.5">{p.titulo}</h2>
+      <h2 class="text-[17px] font-medium leading-tight m-0 mb-1.5">Projeto {p.id}</h2>
       <p class="text-[13px] text-soft m-0 mb-4 leading-relaxed">
-        Esse projeto contém informações sensíveis. Digite a senha pra acessar o conteúdo.
+        Conteúdo restrito. Digite a senha pra acessar.
       </p>
       <form class="secret-form flex items-center gap-2" data-secret-form={p.id} onsubmit="return false">
         <input
@@ -349,7 +362,7 @@ const gruposEnvolvidos = [
   }
 
   // Secret project gate (UX-only, NOT real security — see comment in projetos.ts)
-  const SECRET_PASSWORD = "123";
+  const SECRET_PASSWORD = "1234";
   const content = document.querySelector<HTMLElement>("[data-secret-content]");
   const secretId = content?.dataset.secretContent;
   if (content && secretId) {

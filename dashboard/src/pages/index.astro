@@ -31,6 +31,29 @@ const stats = [
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       {PROJETO_IDS.map((id) => {
         const p = PROJETOS[id];
+        if (p.secreto) {
+          return (
+            <a
+              href={`/projetos/${id}`}
+              class="block panel hover:border-line-strong transition-colors secret-card"
+              title="Projeto protegido · clique pra inserir senha"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-baseline gap-2.5">
+                  <span class="text-[20px] font-medium leading-none">{id}</span>
+                  <span class="text-[14px] font-medium text-soft">Projeto {id}</span>
+                </div>
+                <span class="inline-flex items-center gap-1 text-[11px] text-warning-text bg-warning-bg px-2 py-1 rounded">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  protegido
+                </span>
+              </div>
+            </a>
+          );
+        }
         return (
           <a
             href={`/projetos/${id}`}
@@ -40,15 +63,6 @@ const stats = [
               <div class="flex items-baseline gap-2.5">
                 <span class="text-[20px] font-medium leading-none">{id}</span>
                 <span class="text-[14px] font-medium">{p.apelido}</span>
-                {p.secreto && (
-                  <span class="inline-flex items-center gap-1 text-[10px] text-warning-text bg-warning-bg px-1.5 py-0.5 rounded" title="Projeto protegido por senha">
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                    protegido
-                  </span>
-                )}
               </div>
               <StatusBadge status={p.status} statusClass={p.statusClass} />
             </div>

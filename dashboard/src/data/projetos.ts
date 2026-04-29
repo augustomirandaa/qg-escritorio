@@ -60,6 +60,7 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
     meta: "Dr. Cássio (capilar) · 20% por caso direcionado",
     status: "Estruturado · 1 caso",
     statusClass: "warning",
+    secreto: true,
     tip: "Pipeline = 1 caso em 2 semanas. Origem do modelo veio do Well (apresentou Cássio). Sem rede mapeada de outras clínicas capilares ainda.",
     briefing: {
       contexto: "Augusto direciona pacientes pra clínicas brasileiras parceiras (capilar com Cássio hoje), recebendo 20% por caso. Origem do modelo: Well apresentou Cássio. Modelo derivado da expertise da Lumina, mas operando 100% em território BR.",

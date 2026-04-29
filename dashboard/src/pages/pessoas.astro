@@ -62,9 +62,9 @@ const grupos: { titulo: string; descricao: string; pessoas: Pessoa[] }[] = [
                     <a
                       href={`/projetos/${m}`}
                       class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-soft hover:bg-canvas hover:text-base transition-colors"
-                      title={PROJETOS[m].apelido}
+                      title={PROJETOS[m].secreto ? "Projeto protegido" : PROJETOS[m].apelido}
                     >
-                      {m} · {PROJETOS[m].apelido}
+                      {m} · {PROJETOS[m].secreto ? "protegido" : PROJETOS[m].apelido}
                     </a>
                   ))}
                 </div>
