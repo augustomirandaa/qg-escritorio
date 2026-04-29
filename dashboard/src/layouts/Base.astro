@@ -6,10 +6,15 @@ interface Props {
   title: string;
   subtitle?: string;
   versao?: string;
+  /** quando true, usa container mais largo (1280px) — pra páginas com visualização */
+  wide?: boolean;
 }
 
-const { title, subtitle, versao = "v2.0 · 25 abr 2026" } = Astro.props;
+const { title, subtitle, versao = "v2.0 · 25 abr 2026", wide = false } = Astro.props;
 const pageTitle = title.toLowerCase().includes("qg") ? title : `${title} · QG`;
+const containerClass = wide
+  ? "mx-auto max-w-[1280px] px-5 pt-6 pb-12"
+  : "mx-auto max-w-[960px] px-5 pt-6 pb-12";
 ---
 
 <!doctype html>
@@ -21,7 +26,7 @@ const pageTitle = title.toLowerCase().includes("qg") ? title : `${title} · QG`;
   <title>{pageTitle}</title>
 </head>
 <body>
-  <div class="mx-auto max-w-[960px] px-5 pt-6 pb-12">
+  <div class={containerClass}>
     <Header />
     <main>
       <header class="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4 mb-6">

@@ -1,0 +1,1049 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title="Escritório virtual"
+  subtitle="Centro de operações ao vivo · clique em qualquer pessoa, agente ou sala para abrir o detalhe. Use as lentes pra isolar o que importa."
+  wide={true}
+>
+  <div class="eo">
+
+    <div class="live">
+      <div class="item"><span class="pulse"></span><strong id="liveActiveCount">18</strong>&nbsp;agentes ativos agora</div>
+      <div class="sep"></div>
+      <div class="item"><strong id="liveRunning">3</strong>&nbsp;rodando neste momento</div>
+      <div class="sep"></div>
+      <div class="item"><strong id="liveAlerts">2</strong>&nbsp;alertas pendentes</div>
+      <div class="sep"></div>
+      <div class="item"><strong id="liveOnline">5</strong>&nbsp;humanos online · <span style="color:var(--eo-ink-faint)">atualizado <span id="liveTs">há 12s</span></span></div>
+    </div>
+
+    <div class="toolbar">
+      <label class="search" for="q">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" placeholder="Buscar pessoa, agente, departamento ou modelo…" autocomplete="off"/>
+      </label>
+      <div class="ctrl" id="modelFilter">
+        <span class="lbl">Modelo</span>
+        <span class="chip on" data-m="all">Todos</span>
+        <span class="chip" data-m="A">A · Lumina</span>
+        <span class="chip" data-m="B">B</span>
+        <span class="chip" data-m="C">C</span>
+        <span class="chip" data-m="D">D · Aesthetica</span>
+        <span class="chip" data-m="E">E</span>
+        <span class="chip" data-m="F">F · Marca pessoal</span>
+      </div>
+      <div class="ctrl" id="lensFilter">
+        <span class="lbl">Lente</span>
+        <span class="chip on" data-l="default">Padrão</span>
+        <span class="chip" data-l="status">Status</span>
+        <span class="chip" data-l="conn">Conexões</span>
+        <span class="chip" data-l="dorm">Gargalos</span>
+      </div>
+    </div>
+
+    <div class="main" id="eoMain">
+      <div class="canvas-wrap">
+        <div class="scene-overlay">
+          <div class="badge"><span class="dot"></span>Vista ao vivo</div>
+          <div class="badge" id="selectionBadge" style="display:none">Selecionado: <strong id="selectionName" style="margin-left:4px"></strong></div>
+        </div>
+        <svg id="floor" class="floor" viewBox="0 0 1400 770" preserveAspectRatio="xMidYMid meet" aria-label="Planta isométrica do Escritório Virtual"></svg>
+      </div>
+
+      <aside class="panel empty" id="panel">
+        <div>Clique em qualquer pessoa, agente ou sala para ver o detalhe operacional aqui.</div>
+      </aside>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="sw dot" style="background:var(--eo-green)"></span>Agente P1 · ativo</div>
+      <div class="item"><span class="sw dot" style="background:var(--eo-amber)"></span>Agente P2</div>
+      <div class="item"><span class="sw dot" style="background:var(--eo-grey)"></span>Agente dormente</div>
+      <div class="item"><span class="sw" style="background:var(--eo-blue)"></span>Sócio (núcleo)</div>
+      <div class="item"><span class="sw" style="background:var(--eo-ocre)"></span>Executor</div>
+      <div class="item"><span class="sw" style="background:var(--eo-rose)"></span>Órbita (híbrida)</div>
+      <div class="item"><span class="sw" style="background:var(--eo-teal)"></span>Cliente externo</div>
+    </div>
+
+  </div>
+</Base>
+
+<style is:global>
+  /* ===== ESCRITÓRIO VIRTUAL — escopo .eo ===== */
+  .eo{
+    --eo-bg:#efece4;
+    --eo-bg-2:#f7f5ef;
+    --eo-info-bg:#e6f1fb;
+    --eo-info-ink:#0c447c;
+    --eo-ink:#2c2c2a;
+    --eo-ink-soft:#5f5e5a;
+    --eo-ink-faint:#888780;
+    --eo-card:#ffffff;
+    --eo-line:rgba(0,0,0,.10);
+    --eo-line-strong:rgba(0,0,0,.16);
+    --eo-green:#16a34a;
+    --eo-green-bg:#e1f5ee;  --eo-green-ink:#085041;
+    --eo-amber:#d97706;
+    --eo-amber-bg:#faeeda;  --eo-amber-ink:#854f0b;
+    --eo-red:#dc2626;
+    --eo-red-bg:#fde7e7;    --eo-red-ink:#7f1d1d;
+    --eo-grey:#9aa0a6;
+    --eo-blue:#185fa5;
+    --eo-teal:#2c7873;
+    --eo-ocre:#ba7517;
+    --eo-rose:#d4537e;
+
+    --eo-floor-dir:#ece2f9;
+    --eo-floor-mkt:#fde4cf;
+    --eo-floor-com:#d8f0e1;
+    --eo-floor-dev:#d6e3ef;
+    --eo-floor-prj:#fbe5d2;
+    --eo-floor-mtg:#eaf0ff;
+    --eo-floor-lib:#f5e3da;
+    --eo-floor-corridor:#e8e3d2;
+
+    --eo-shadow-card: 0 1px 0 rgba(255,255,255,.6) inset, 0 1px 2px rgba(0,0,0,.05), 0 8px 24px -12px rgba(0,0,0,.18);
+
+    color: var(--eo-ink);
+    font: 14px/1.5 -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .eo *{box-sizing:border-box}
+
+  /* status strip — ao vivo */
+  .eo .live{display:flex; gap:18px; flex-wrap:wrap; align-items:center; padding:10px 14px; background:var(--eo-card); border:1px solid var(--eo-line); border-radius:10px; margin:0 0 12px; box-shadow:var(--eo-shadow-card)}
+  .eo .live .pulse{width:8px; height:8px; border-radius:50%; background:var(--eo-green); box-shadow:0 0 0 0 rgba(22,163,74,.5); animation: eoPulse 2s ease-out infinite}
+  .eo .live .item{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--eo-ink-soft)}
+  .eo .live .item strong{color:var(--eo-ink); font-weight:600}
+  .eo .live .sep{width:1px; height:18px; background:var(--eo-line)}
+  @keyframes eoPulse{
+    0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}
+    70%{box-shadow:0 0 0 10px rgba(22,163,74,0)}
+    100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}
+  }
+
+  /* toolbar */
+  .eo .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px}
+  .eo .search{
+    display:flex; align-items:center; gap:8px;
+    flex:1 1 280px; min-width:220px; max-width:420px;
+    background:var(--eo-card); border:1px solid var(--eo-line); border-radius:10px;
+    padding:8px 12px; box-shadow:var(--eo-shadow-card);
+  }
+  .eo .search input{
+    border:0; outline:0; flex:1; background:transparent;
+    font:inherit; color:var(--eo-ink); padding:0;
+  }
+  .eo .search input::placeholder{color:var(--eo-ink-faint)}
+  .eo .search svg{flex:0 0 16px; color:var(--eo-ink-faint)}
+  .eo .ctrl{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .eo .ctrl .lbl{font-size:11px; color:var(--eo-ink-faint); text-transform:uppercase; letter-spacing:.08em; margin-right:2px}
+  .eo .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:999px; font-size:12px; font-weight:500;
+    background:var(--eo-card); border:1px solid var(--eo-line); color:var(--eo-ink-soft);
+    cursor:pointer; user-select:none; transition:all .15s;
+  }
+  .eo .chip:hover{border-color:var(--eo-line-strong); color:var(--eo-ink)}
+  .eo .chip.on{background:var(--eo-ink); color:#fff; border-color:var(--eo-ink)}
+
+  /* main layout */
+  .eo .main{display:grid; grid-template-columns: 1fr 360px; gap:14px; align-items:start}
+  .eo .canvas-wrap{
+    position:relative;
+    background:linear-gradient(180deg,#f3f1ea 0%, #e6e1d2 100%);
+    border:1px solid var(--eo-line);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:var(--eo-shadow-card);
+  }
+  .eo svg.floor{display:block; width:100%; height:auto; aspect-ratio: 16/10; max-height:78vh}
+  .eo .scene-overlay{position:absolute; left:14px; top:14px; display:flex; gap:6px; align-items:center; pointer-events:none}
+  .eo .scene-overlay .badge{
+    background:rgba(255,255,255,.92); border:1px solid var(--eo-line); border-radius:999px;
+    padding:4px 10px; font-size:11px; color:var(--eo-ink-soft); display:flex; gap:6px; align-items:center;
+    box-shadow:var(--eo-shadow-card);
+  }
+  .eo .scene-overlay .badge .dot{width:6px;height:6px;border-radius:50%; background:var(--eo-green); animation:eoPulse 2s ease-out infinite}
+
+  /* detail panel */
+  .eo .panel{
+    background:var(--eo-card); border:1px solid var(--eo-line); border-radius:14px;
+    box-shadow:var(--eo-shadow-card); overflow:hidden; min-height:460px;
+    display:flex; flex-direction:column; transition: opacity .2s;
+  }
+  .eo .panel.empty{align-items:center; justify-content:center; text-align:center; padding:40px 24px; color:var(--eo-ink-faint); font-size:13px}
+  .eo .panel-head{padding:16px 18px; border-bottom:1px solid var(--eo-line); display:flex; gap:14px; align-items:flex-start}
+  .eo .panel-head .av{width:44px; height:44px; border-radius:50%; flex:0 0 44px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px}
+  .eo .panel-head .name{font-size:16px; font-weight:600; margin:0; line-height:1.2}
+  .eo .panel-head .role{font-size:12.5px; color:var(--eo-ink-soft); margin-top:3px}
+  .eo .panel-head .close{margin-left:auto; background:rgba(0,0,0,.05); border:0; width:28px; height:28px; border-radius:8px; cursor:pointer; color:var(--eo-ink-soft); font-size:18px; display:flex; align-items:center; justify-content:center}
+  .eo .panel-head .close:hover{background:rgba(0,0,0,.1)}
+  .eo .panel-body{padding:14px 18px; overflow-y:auto; flex:1; max-height:62vh}
+  .eo .panel-section{margin:0 0 16px}
+  .eo .panel-section h4{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--eo-ink-faint); margin:0 0 8px}
+  .eo .panel-section p{margin:0 0 6px; font-size:13px; color:var(--eo-ink); line-height:1.5}
+  .eo .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:12.5px}
+  .eo .kv dt{color:var(--eo-ink-faint)}
+  .eo .kv dd{margin:0; color:var(--eo-ink); font-weight:500}
+  .eo .badge-list{display:flex; gap:5px; flex-wrap:wrap}
+  .eo .b{display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 8px; border-radius:999px; font-weight:500}
+  .eo .b.green{background:var(--eo-green-bg); color:var(--eo-green-ink)}
+  .eo .b.amber{background:var(--eo-amber-bg); color:var(--eo-amber-ink)}
+  .eo .b.dorm{background:rgba(0,0,0,.06); color:var(--eo-ink-faint)}
+  .eo .b.red{background:var(--eo-red-bg); color:var(--eo-red-ink)}
+  .eo .b.model{background:#1a1a18; color:#fff}
+  .eo .b.outline{background:transparent; border:1px solid var(--eo-line-strong); color:var(--eo-ink-soft)}
+  .eo .metric{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  .eo .metric .m{flex:1 1 90px; padding:10px 12px; border-radius:10px; background:var(--eo-bg-2)}
+  .eo .metric .m .v{font-size:18px; font-weight:600; color:var(--eo-ink); letter-spacing:-.01em}
+  .eo .metric .m .l{font-size:10.5px; color:var(--eo-ink-faint); margin-top:2px; text-transform:uppercase; letter-spacing:.05em}
+  .eo .spark{height:32px; width:100%; display:block}
+  .eo .actions{display:flex; gap:6px; flex-wrap:wrap}
+  .eo .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 11px; font-size:12px; font-weight:500;
+    background:var(--eo-card); border:1px solid var(--eo-line-strong); border-radius:8px;
+    color:var(--eo-ink); cursor:pointer; transition:all .15s; font-family:inherit;
+  }
+  .eo .btn:hover{background:var(--eo-bg-2)}
+  .eo .btn.primary{background:var(--eo-ink); color:#fff; border-color:var(--eo-ink)}
+  .eo .btn.primary:hover{background:#000}
+  .eo .related{display:flex; flex-direction:column; gap:5px}
+  .eo .related .row{display:flex; gap:9px; padding:6px 8px; border-radius:8px; cursor:pointer; align-items:center; transition:background .12s}
+  .eo .related .row:hover{background:var(--eo-bg-2)}
+  .eo .related .av{width:24px;height:24px;border-radius:50%; flex:0 0 24px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:9.5px}
+  .eo .related .meta{font-size:12px; color:var(--eo-ink); font-weight:500}
+  .eo .related .submeta{font-size:10.5px; color:var(--eo-ink-faint); margin-top:1px}
+
+  /* legenda */
+  .eo .legend{
+    display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 0;
+    padding:11px 16px; background:rgba(255,255,255,.55);
+    border:1px solid var(--eo-line); border-radius:10px; font-size:12px; color:var(--eo-ink-soft);
+  }
+  .eo .legend .item{display:flex; align-items:center; gap:8px}
+  .eo .legend .sw{width:12px; height:12px; border-radius:3px}
+  .eo .legend .sw.dot{border-radius:50%}
+
+  /* svg styling — precisa ser global pra SVG dinâmico */
+  .eo .obj{cursor:default; transition: filter .14s, opacity .14s}
+  .eo .obj.interactive{cursor:pointer}
+  .eo .obj.interactive:hover{filter: brightness(1.06)}
+  .eo .obj.selected{filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 4px rgba(24,95,165,.95))}
+  .eo .dim{opacity:.16; filter:saturate(.4)}
+  .eo .room-label{font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; fill:var(--eo-ink-soft); text-anchor:middle; pointer-events:none}
+  .eo .room-sub{font-size:9.5px; fill:var(--eo-ink-faint); text-anchor:middle; pointer-events:none}
+
+  /* connection lines */
+  .eo .conn{
+    fill:none; stroke:rgba(24,95,165,.85); stroke-width:1.6;
+    stroke-dasharray:3 4; stroke-linecap:round;
+    animation: eoDash 14s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes eoDash { from{stroke-dashoffset:0} to{stroke-dashoffset:-200} }
+
+  @media (max-width: 1100px){
+    .eo .main{grid-template-columns: 1fr}
+  }
+</style>
+
+<script is:inline>
+/* =========================================================
+   ESCRITÓRIO VIRTUAL · QG · v2
+   Cena isométrica + painel de detalhe + filtros e lentes.
+   ========================================================= */
+
+(function(){
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('floor');
+const panel = document.getElementById('panel');
+
+const TX = 34, TY = 17, TZ = 34;
+const OX = 480, OY = 40;
+function iso(gx, gy, gz=0){ return [OX + (gx-gy)*TX, OY + (gx+gy)*TY - gz*TZ]; }
+function poly(pts){ return pts.map(p=>p.join(',')).join(' '); }
+function ELEM(tag, attrs={}, parent=svg){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+function shade(hex, amt){
+  if (hex.startsWith('var(')) return hex;
+  const c = hex.replace('#',''); let r=parseInt(c.slice(0,2),16), g=parseInt(c.slice(2,4),16), b=parseInt(c.slice(4,6),16);
+  r=Math.max(0,Math.min(255,r+amt)); g=Math.max(0,Math.min(255,g+amt)); b=Math.max(0,Math.min(255,b+amt));
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+const queue = [];
+function enq(depth, fn){ queue.push({depth, fn}); }
+function flush(){ queue.sort((a,b)=>a.depth-b.depth); for(const it of queue) it.fn(); queue.length = 0; }
+
+function defs(){
+  const d = ELEM('defs',{});
+  d.innerHTML = '<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><radialGradient id="floorGloss" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0.4)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient><linearGradient id="wallShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbf9f3"/><stop offset="100%" stop-color="#ece6d6"/></linearGradient><linearGradient id="screenGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,.55)"/><stop offset="50%" stop-color="rgba(255,255,255,0)"/><stop offset="100%" stop-color="rgba(0,0,0,.18)"/></linearGradient>';
+}
+
+const layers = {};
+function makeLayers(){
+  ['floor','rugs','walls','wallDecor','furniture','props','people','labels','conn','select'].forEach(name=>{
+    layers[name] = ELEM('g', {class: 'layer-'+name});
+  });
+}
+
+function pisoSala(gx, gy, w, d, fill){
+  const pts = [iso(gx,gy), iso(gx+w,gy), iso(gx+w,gy+d), iso(gx,gy+d)];
+  enq((gx+gy)*0.001, ()=>{
+    ELEM('polygon', {points: poly(pts), fill, stroke:'rgba(0,0,0,0.10)', 'stroke-width': 1.1}, layers.floor);
+    const c = iso(gx + w/2, gy + d/2);
+    ELEM('ellipse', {cx:c[0], cy:c[1], rx:w*TX*0.7, ry:d*TY*0.7, fill:'url(#floorGloss)', opacity:.35}, layers.floor);
+    for(let i=1;i<w;i++){ const a=iso(gx+i,gy), b=iso(gx+i,gy+d);
+      ELEM('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1], stroke:'rgba(0,0,0,0.05)','stroke-width':0.5}, layers.floor);}
+    for(let j=1;j<d;j++){ const a=iso(gx,gy+j), b=iso(gx+w,gy+j);
+      ELEM('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1], stroke:'rgba(0,0,0,0.05)','stroke-width':0.5}, layers.floor);}
+  });
+}
+
+function tapete(gx, gy, w, d, color){
+  const pts = [iso(gx+0.15,gy+0.15), iso(gx+w-0.15,gy+0.15), iso(gx+w-0.15,gy+d-0.15), iso(gx+0.15,gy+d-0.15)];
+  enq((gx+gy)*0.002, ()=>{
+    ELEM('polygon', {points: poly(pts), fill: color, opacity:.85, stroke:'rgba(0,0,0,0.10)','stroke-width':0.6}, layers.rugs);
+  });
+}
+
+function parede(g1, g2, h, decor){
+  h = h || 1.4;
+  const a=iso(g1[0],g1[1],0), b=iso(g2[0],g2[1],0);
+  const at=iso(g1[0],g1[1],h), bt=iso(g2[0],g2[1],h);
+  enq((g1[0]+g1[1])*0.5 - 0.2, ()=>{
+    ELEM('polygon', {points: poly([a,b,bt,at]), fill:'url(#wallShade)', stroke:'rgba(0,0,0,0.10)','stroke-width':1}, layers.walls);
+    ELEM('polygon', {points: poly([at,bt,[bt[0],bt[1]+3.5],[at[0],at[1]+3.5]]), fill:'rgba(0,0,0,0.10)'}, layers.walls);
+    if (decor === 'whiteboard'){
+      const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2 - h*TZ*0.55;
+      ELEM('rect', {x:cx-22,y:cy-13,width:44,height:26, fill:'#ffffff', stroke:'#222','stroke-width':1, rx:2}, layers.wallDecor);
+      ELEM('line',{x1:cx-16,y1:cy-7,x2:cx+12,y2:cy-7,stroke:'#16a34a','stroke-width':1.4}, layers.wallDecor);
+      ELEM('line',{x1:cx-16,y1:cy-2,x2:cx+8,y2:cy-2,stroke:'#185fa5','stroke-width':1.4}, layers.wallDecor);
+      ELEM('line',{x1:cx-16,y1:cy+3,x2:cx+15,y2:cy+3,stroke:'#d97706','stroke-width':1.4}, layers.wallDecor);
+      ELEM('line',{x1:cx-16,y1:cy+8,x2:cx+5,y2:cy+8,stroke:'#666','stroke-width':1.4}, layers.wallDecor);
+    } else if (decor === 'screen'){
+      const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2 - h*TZ*0.55;
+      ELEM('rect', {x:cx-26,y:cy-15,width:52,height:30, fill:'#1a1a18', rx:2}, layers.wallDecor);
+      ELEM('rect', {x:cx-23,y:cy-12,width:46,height:24, fill:'#16a34a', opacity:.85, rx:1}, layers.wallDecor);
+      const path = 'M '+(cx-19)+' '+(cy+8)+' L '+(cx-12)+' '+(cy+3)+' L '+(cx-5)+' '+(cy+5)+' L '+(cx+1)+' '+(cy-2)+' L '+(cx+8)+' '+(cy-1)+' L '+(cx+15)+' '+(cy-7)+' L '+(cx+19)+' '+(cy-5);
+      ELEM('path',{d:path, stroke:'#fff','stroke-width':1.4, fill:'none','stroke-linejoin':'round'}, layers.wallDecor);
+    } else if (decor === 'shelf'){
+      const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2 - h*TZ*0.5;
+      ELEM('rect', {x:cx-26,y:cy-2,width:52,height:4, fill:'#7d5938'}, layers.wallDecor);
+      ELEM('rect', {x:cx-26,y:cy+10,width:52,height:4, fill:'#7d5938'}, layers.wallDecor);
+      const bookColors = ['#185fa5','#d97706','#16a34a','#7c2d12','#475569','#9d174d','#0e7490'];
+      for (let i=0;i<7;i++){
+        const bx = cx - 24 + i*7;
+        ELEM('rect',{x:bx,y:cy-12,width:6,height:10, fill:bookColors[i%bookColors.length]}, layers.wallDecor);
+        ELEM('rect',{x:bx,y:cy,width:6,height:10, fill:bookColors[(i+3)%bookColors.length]}, layers.wallDecor);
+      }
+    } else if (decor === 'window'){
+      const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2 - h*TZ*0.55;
+      ELEM('rect',{x:cx-30,y:cy-14,width:60,height:30, fill:'#bfe1f5', stroke:'#7d5938','stroke-width':2, rx:1}, layers.wallDecor);
+      ELEM('line',{x1:cx, y1:cy-14, x2:cx, y2:cy+16, stroke:'#7d5938','stroke-width':1.5}, layers.wallDecor);
+      ELEM('line',{x1:cx-30, y1:cy+1, x2:cx+30, y2:cy+1, stroke:'#7d5938','stroke-width':1.5}, layers.wallDecor);
+      ELEM('ellipse',{cx:cx-12,cy:cy-6,rx:6,ry:2.5,fill:'#fff', opacity:.9}, layers.wallDecor);
+      ELEM('ellipse',{cx:cx+10,cy:cy+5,rx:7,ry:3,fill:'#fff', opacity:.9}, layers.wallDecor);
+    } else if (decor === 'art'){
+      const cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2 - h*TZ*0.55;
+      ELEM('rect',{x:cx-18,y:cy-12,width:36,height:24, fill:'#fff', stroke:'#7d5938','stroke-width':2}, layers.wallDecor);
+      ELEM('circle',{cx:cx-5,cy:cy-2,r:5,fill:'#d97706', opacity:.7}, layers.wallDecor);
+      ELEM('rect',{x:cx-2,y:cy+1,width:14,height:8,fill:'#16a34a', opacity:.7}, layers.wallDecor);
+    }
+  });
+}
+
+function mesa(gx, gy, w, d, color){
+  w = w || 1.6; d = d || 0.85; color = color || '#f1ead6';
+  const z=0.55, drawerH=0.18;
+  const top  = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx,gy+d,z)];
+  const front= [iso(gx,gy+d,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx,gy+d,0)];
+  const east = [iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx+w,gy,0)];
+  enq(gx+gy+0.2, ()=>{
+    ELEM('polygon', {points: poly(east), fill: shade(color, -34)}, layers.furniture);
+    ELEM('polygon', {points: poly(front), fill: shade(color, -16)}, layers.furniture);
+    const drawTop = [iso(gx+w-0.4, gy+d, z-0.04), iso(gx+w-0.04, gy+d, z-0.04), iso(gx+w-0.04, gy+d, z-drawerH-0.04), iso(gx+w-0.4, gy+d, z-drawerH-0.04)];
+    ELEM('polygon',{points: poly(drawTop), fill: shade(color,-26), stroke:'rgba(0,0,0,0.18)','stroke-width':0.6}, layers.furniture);
+    const handleA = iso(gx+w-0.32, gy+d, z-drawerH/2-0.04);
+    const handleB = iso(gx+w-0.12, gy+d, z-drawerH/2-0.04);
+    ELEM('line',{x1:handleA[0],y1:handleA[1],x2:handleB[0],y2:handleB[1],stroke:'#3b3b39','stroke-width':1.4}, layers.furniture);
+    ELEM('polygon', {points: poly(top), fill: color, stroke:'rgba(0,0,0,0.18)','stroke-width':1}, layers.furniture);
+    const aT=top[0], bT=top[1];
+    for (let i=0; i<3; i++){
+      const t=0.25+i*0.25;
+      const ax = aT[0]+(bT[0]-aT[0])*t, ay=aT[1]+(bT[1]-aT[1])*t;
+      const bx = top[3][0]+(top[2][0]-top[3][0])*t, by=top[3][1]+(top[2][1]-top[3][1])*t;
+      ELEM('line',{x1:ax,y1:ay,x2:bx,y2:by, stroke:'rgba(0,0,0,0.05)','stroke-width':0.5}, layers.furniture);
+    }
+  });
+}
+
+function monitor(gx, gy, screenColor, running){
+  screenColor = screenColor || '#16a34a';
+  const z = 0.55, w = 0.55, d = 0.06, h = 0.42;
+  enq(gx+gy+0.4, ()=>{
+    const standA = iso(gx+w/2-0.08, gy+d/2-0.04, z);
+    const standB = iso(gx+w/2+0.08, gy+d/2+0.04, z);
+    ELEM('polygon', {points: poly([standA, standB, [standB[0]+1, standB[1]+5], [standA[0]+1, standA[1]+5]]), fill:'#3b3b39'}, layers.furniture);
+    const back = [iso(gx, gy+d, z), iso(gx+w, gy+d, z), iso(gx+w, gy+d, z+h), iso(gx, gy+d, z+h)];
+    const top  = [iso(gx, gy, z+h), iso(gx+w, gy, z+h), iso(gx+w, gy+d, z+h), iso(gx, gy+d, z+h)];
+    const side = [iso(gx+w, gy, z), iso(gx+w, gy+d, z), iso(gx+w, gy+d, z+h), iso(gx+w, gy, z+h)];
+    const front= [iso(gx, gy, z), iso(gx+w, gy, z), iso(gx+w, gy, z+h), iso(gx, gy, z+h)];
+    ELEM('polygon',{points: poly(back), fill:'#22221f'}, layers.furniture);
+    ELEM('polygon',{points: poly(side), fill:'#1a1a18'}, layers.furniture);
+    ELEM('polygon',{points: poly(top),  fill:'#2a2a26'}, layers.furniture);
+    ELEM('polygon',{points: poly(front),fill:'#0e0e0c'}, layers.furniture);
+    const sf = [iso(gx+0.04, gy-0.005, z+0.04), iso(gx+w-0.04, gy-0.005, z+0.04), iso(gx+w-0.04, gy-0.005, z+h-0.04), iso(gx+0.04, gy-0.005, z+h-0.04)];
+    ELEM('polygon',{points: poly(sf), fill: screenColor}, layers.furniture);
+    ELEM('polygon',{points: poly(sf), fill:'url(#screenGlow)', opacity:.7}, layers.furniture);
+    const tl=sf[3], tr=sf[2], bl=sf[0], br=sf[1];
+    for (let i = 0.75; i > 0.18; i -= 0.13){
+      const ly=bl[1]+(tl[1]-bl[1])*i;
+      const lyr=br[1]+(tr[1]-br[1])*i;
+      const lx = bl[0]+(tl[0]-bl[0])*i + 2;
+      const lxr = br[0]+(tr[0]-br[0])*i;
+      const slot = lx + (lxr-lx)*Math.random()*0.55 + 5;
+      ELEM('line',{x1:lx, y1:ly, x2:slot, y2:ly, stroke:'rgba(255,255,255,.55)','stroke-width':0.9}, layers.furniture);
+    }
+    if (running){
+      const dot = ELEM('circle',{cx:sf[0][0]+22, cy:sf[0][1]-16, r:2.4, fill:'#22c55e'}, layers.furniture);
+      dot.innerHTML = '<animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite"/>';
+    }
+  });
+}
+
+function cadeira(gx, gy, color){
+  color = color || '#3b3b39';
+  const z=0.32, w=0.55, d=0.55;
+  enq(gx+gy+0.05, ()=>{
+    const sh = iso(gx+w/2, gy+d/2, 0);
+    ELEM('ellipse',{cx:sh[0],cy:sh[1]+3,rx:11,ry:4,fill:'rgba(0,0,0,0.18)'}, layers.furniture);
+    const seat = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx,gy+d,z)];
+    ELEM('polygon', {points: poly(seat), fill: color, stroke:'rgba(0,0,0,0.2)','stroke-width':0.7}, layers.furniture);
+    const back1 = iso(gx, gy, z), back2 = iso(gx+w, gy, z);
+    const bt1 = iso(gx, gy, z+0.55), bt2 = iso(gx+w, gy, z+0.55);
+    ELEM('polygon', {points: poly([back1, back2, bt2, bt1]), fill: shade(color, -10), stroke:'rgba(0,0,0,0.18)','stroke-width':0.7}, layers.furniture);
+    const c = iso(gx+w/2, gy+d/2, 0);
+    const ct = iso(gx+w/2, gy+d/2, z);
+    ELEM('line', {x1:c[0],y1:c[1],x2:ct[0],y2:ct[1],stroke: shade(color,-25),'stroke-width':2.4}, layers.furniture);
+    ELEM('ellipse',{cx:c[0],cy:c[1]-1,rx:6,ry:2,fill: shade(color,-30)}, layers.furniture);
+  });
+}
+
+function mesaRedonda(gx, gy, r, color){
+  r = r || 1; color = color || '#e5d8b0';
+  const z=0.55, c=iso(gx, gy, z), cb=iso(gx, gy, 0);
+  enq(gx+gy, ()=>{
+    ELEM('ellipse',{cx:cb[0], cy:cb[1]+3, rx:r*TX*1.2, ry:r*TY*1.2, fill:'rgba(0,0,0,0.18)'}, layers.furniture);
+    ELEM('rect',{x:cb[0]-3, y:cb[1]-z*TZ, width:6, height:z*TZ, fill: shade(color,-35)}, layers.furniture);
+    ELEM('ellipse',{cx:c[0], cy:c[1], rx:r*TX*1.2, ry:r*TY*1.2, fill:color, stroke:'rgba(0,0,0,0.20)','stroke-width':1}, layers.furniture);
+    ELEM('ellipse',{cx:c[0]-r*TX*0.3, cy:c[1]-r*TY*0.3, rx:r*TX*0.55, ry:r*TY*0.45, fill:'url(#floorGloss)', opacity:.7}, layers.furniture);
+  });
+}
+
+function sofa(gx, gy, w, color){
+  w = w || 2.6; color = color || '#9ca3af';
+  const z=0.32;
+  enq(gx+gy+0.3, ()=>{
+    const sa=iso(gx,gy+1,0), sb=iso(gx+w,gy+1,0);
+    ELEM('polygon',{points: poly([[sa[0]-3,sa[1]+3],[sb[0]+3,sb[1]+3],[sb[0]+1,sb[1]+9],[sa[0]-5,sa[1]+9]]), fill:'rgba(0,0,0,0.16)'}, layers.furniture);
+    const seatTop = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+1.0,z),iso(gx,gy+1.0,z)];
+    const front = [iso(gx,gy+1.0,z),iso(gx+w,gy+1.0,z),iso(gx+w,gy+1.0,0),iso(gx,gy+1.0,0)];
+    const side = [iso(gx+w,gy,z),iso(gx+w,gy+1.0,z),iso(gx+w,gy+1.0,0),iso(gx+w,gy,0)];
+    ELEM('polygon',{points:poly(side), fill:shade(color,-26)}, layers.furniture);
+    ELEM('polygon',{points:poly(front), fill:shade(color,-12)}, layers.furniture);
+    ELEM('polygon',{points:poly(seatTop), fill:color, stroke:'rgba(0,0,0,0.2)'}, layers.furniture);
+    const cw = (w-0.2)/3;
+    for(let i=0;i<3;i++){
+      const cx0 = gx+0.1+i*cw;
+      const a=iso(cx0,gy+0.05,z), b=iso(cx0+cw-0.05,gy+0.05,z), c=iso(cx0+cw-0.05,gy+0.5,z), d=iso(cx0,gy+0.5,z);
+      ELEM('polygon',{points:poly([a,b,c,d]), fill: shade(color,14), stroke:'rgba(0,0,0,0.10)'}, layers.furniture);
+    }
+    const back = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy,z+0.6),iso(gx,gy,z+0.6)];
+    ELEM('polygon',{points:poly(back), fill: shade(color,-10), stroke:'rgba(0,0,0,0.18)'}, layers.furniture);
+    const c1 = iso(gx+0.3,gy+0.1,z+0.45), c2=iso(gx+w-0.3,gy+0.1,z+0.45);
+    ELEM('rect',{x:c1[0]-7,y:c1[1]-9,width:14,height:14,rx:3,fill: shade(color,22)}, layers.furniture);
+    ELEM('rect',{x:c2[0]-7,y:c2[1]-9,width:14,height:14,rx:3,fill: shade(color,22)}, layers.furniture);
+  });
+}
+
+function mesaCafe(gx, gy, color){
+  color = color || '#7d5938';
+  enq(gx+gy+0.25, ()=>{
+    const z=0.28;
+    const top = [iso(gx,gy,z),iso(gx+0.9,gy,z),iso(gx+0.9,gy+0.6,z),iso(gx,gy+0.6,z)];
+    ELEM('polygon',{points: poly(top), fill: color, stroke:'rgba(0,0,0,0.2)'}, layers.furniture);
+    [[gx,gy],[gx+0.9,gy],[gx+0.9,gy+0.6],[gx,gy+0.6]].forEach(function(p){
+      const x=p[0], y=p[1];
+      const a=iso(x,y,z), b=iso(x,y,0);
+      ELEM('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke: shade(color,-20),'stroke-width':1.6}, layers.furniture);
+    });
+    const c = iso(gx+0.5,gy+0.3,z);
+    ELEM('ellipse',{cx:c[0],cy:c[1]-1,rx:4,ry:2,fill:'#fff', stroke:'#888'}, layers.furniture);
+    ELEM('ellipse',{cx:c[0],cy:c[1]-2,rx:3,ry:1.4,fill:'#5a3a1a'}, layers.furniture);
+  });
+}
+
+function planta(gx, gy, type){
+  type = type || 'ficus';
+  enq(gx+gy+0.1, ()=>{
+    const base = iso(gx+0.5, gy+0.5, 0);
+    ELEM('ellipse',{cx:base[0],cy:base[1]+4,rx:11,ry:4,fill:'rgba(0,0,0,0.18)'}, layers.props);
+    ELEM('path',{d:'M '+(base[0]-9)+' '+(base[1]-1)+' L '+(base[0]-7)+' '+(base[1]+5)+' L '+(base[0]+7)+' '+(base[1]+5)+' L '+(base[0]+9)+' '+(base[1]-1)+' Z', fill:'#a4753f', stroke:'#7d5938','stroke-width':1}, layers.props);
+    ELEM('ellipse',{cx:base[0],cy:base[1]-1,rx:9,ry:3,fill:'#7d5938'}, layers.props);
+    if (type==='ficus'){
+      ELEM('ellipse',{cx:base[0]-5,cy:base[1]-13,rx:9,ry:14,fill:'#5b8e3c'}, layers.props);
+      ELEM('ellipse',{cx:base[0]+5,cy:base[1]-15,rx:8,ry:15,fill:'#6ea34a'}, layers.props);
+      ELEM('ellipse',{cx:base[0],cy:base[1]-22,rx:8,ry:13,fill:'#7cb155'}, layers.props);
+    } else if (type==='palm'){
+      const c = base;
+      for (let a = 0; a < 6; a++){
+        const ang = (a * Math.PI) / 3 - Math.PI/2;
+        const ex = c[0] + Math.cos(ang)*13;
+        const ey = c[1] - 8 + Math.sin(ang)*8;
+        ELEM('ellipse',{cx:(c[0]+ex)/2, cy:(c[1]-12+ey)/2, rx:7, ry:3, fill:'#4f8c35', transform: 'rotate('+(ang*180/Math.PI)+' '+((c[0]+ex)/2)+' '+((c[1]-12+ey)/2)+')'}, layers.props);
+      }
+    } else if (type==='small'){
+      ELEM('ellipse',{cx:base[0]-3,cy:base[1]-7,rx:5,ry:6,fill:'#6ea34a'}, layers.props);
+      ELEM('ellipse',{cx:base[0]+3,cy:base[1]-9,rx:4,ry:7,fill:'#7cb155'}, layers.props);
+    }
+  });
+}
+
+function pessoa(gx, gy, initials, kind, opts){
+  opts = opts || {};
+  const palette = {nucleo:'#185fa5', exec:'#ba7517', orbit:'#d4537e', client:'#2c7873'};
+  const color = palette[kind] || '#475569';
+  const skin = '#f0c8a6';
+  const hair = opts.hair || '#3b2f24';
+  const shirt = opts.shirt || color;
+  const pose  = opts.pose || 'standing';
+  const status = opts.status || 'online';
+
+  enq(gx+gy+0.6, ()=>{
+    const base = iso(gx+0.5, gy+0.5, pose==='sitting' ? 0.32 : 0);
+    const shoulder = iso(gx+0.5, gy+0.5, (pose==='sitting' ? 0.32 : 0) + 0.92);
+    const head     = iso(gx+0.5, gy+0.5, (pose==='sitting' ? 0.32 : 0) + 1.10);
+    const g = ELEM('g', {class:'obj interactive person', 'data-kind':'person','data-id': opts.id||'', 'data-models': (opts.models||[]).join(',')}, layers.people);
+    if (pose==='standing'){
+      const sb = iso(gx+0.5, gy+0.5, 0);
+      ELEM('ellipse',{cx:sb[0],cy:sb[1]+2,rx:9,ry:3.2,fill:'rgba(0,0,0,0.22)'}, g);
+    }
+    ELEM('path', {d:'M '+(base[0]-8.5)+' '+base[1]+' Q '+(base[0]-10)+' '+(shoulder[1]+5)+' '+(base[0]-7.5)+' '+(shoulder[1]+3)+' L '+(base[0]+7.5)+' '+(shoulder[1]+3)+' Q '+(base[0]+10)+' '+(shoulder[1]+5)+' '+(base[0]+8.5)+' '+base[1]+' Z',
+                fill: shirt, stroke: shade(shirt,-25), 'stroke-width':0.8}, g);
+    ELEM('path', {d:'M '+(base[0]-4)+' '+(shoulder[1]+3)+' Q '+base[0]+' '+(shoulder[1]+8)+' '+(base[0]+4)+' '+(shoulder[1]+3), fill: shade(shirt,-15)}, g);
+    ELEM('path',{d:'M '+(base[0]-9)+' '+(shoulder[1]+5)+' Q '+(base[0]-12)+' '+(shoulder[1]+10)+' '+(base[0]-10.5)+' '+(base[1]-2), stroke: shade(shirt,-18),'stroke-width':3, fill:'none','stroke-linecap':'round'}, g);
+    ELEM('path',{d:'M '+(base[0]+9)+' '+(shoulder[1]+5)+' Q '+(base[0]+12)+' '+(shoulder[1]+10)+' '+(base[0]+10.5)+' '+(base[1]-2), stroke: shade(shirt,-18),'stroke-width':3, fill:'none','stroke-linecap':'round'}, g);
+    const it = ELEM('text', {x: base[0], y: (shoulder[1]+base[1])/2 + 3, 'text-anchor':'middle', 'font-size':7, 'font-weight':700, fill:'#fff','letter-spacing':'.3px'}, g);
+    it.textContent = initials;
+    ELEM('circle', {cx:head[0], cy:head[1]+1, r:7, fill:skin, stroke:'rgba(0,0,0,0.2)','stroke-width':0.8}, g);
+    if (opts.hairStyle === 'long'){
+      ELEM('path', {d:'M '+(head[0]-7.5)+' '+(head[1]+1)+' A 7.5 7.5 0 0 1 '+(head[0]+7.5)+' '+(head[1]+1)+' L '+(head[0]+8)+' '+(head[1]+5)+' L '+(head[0]-8)+' '+(head[1]+5)+' Z', fill:hair}, g);
+    } else if (opts.hairStyle === 'bald'){ /* nada */ }
+    else {
+      ELEM('path', {d:'M '+(head[0]-7)+' '+(head[1]+1)+' A 7 7 0 0 1 '+(head[0]+7)+' '+(head[1]+1)+' L '+(head[0]+5.5)+' '+(head[1]-2)+' A 5.5 5.5 0 0 0 '+(head[0]-5.5)+' '+(head[1]-2)+' Z', fill:hair}, g);
+    }
+    ELEM('circle',{cx:head[0]-2.5, cy:head[1]+2, r:0.9, fill:'#1a1a18'}, g);
+    ELEM('circle',{cx:head[0]+2.5, cy:head[1]+2, r:0.9, fill:'#1a1a18'}, g);
+    ELEM('path',{d:'M '+(head[0]-1.6)+' '+(head[1]+5)+' Q '+head[0]+' '+(head[1]+6.2)+' '+(head[0]+1.6)+' '+(head[1]+5), fill:'none', stroke:'#1a1a18','stroke-width':0.7}, g);
+    if (opts.glasses){
+      ELEM('rect',{x:head[0]-4.5,y:head[1]+0.6,width:3.6,height:2.6,fill:'none',stroke:'#1a1a18','stroke-width':0.7,rx:1}, g);
+      ELEM('rect',{x:head[0]+0.9,y:head[1]+0.6,width:3.6,height:2.6,fill:'none',stroke:'#1a1a18','stroke-width':0.7,rx:1}, g);
+      ELEM('line',{x1:head[0]-0.9,y1:head[1]+1.9,x2:head[0]+0.9,y2:head[1]+1.9,stroke:'#1a1a18','stroke-width':0.7}, g);
+    }
+    const dotC = {online:'#22c55e', busy:'#d97706', offline:'#9aa0a6'}[status];
+    const sd = ELEM('circle',{cx:head[0]+5.5, cy:head[1]-4.5, r:2.4, fill:dotC, stroke:'#fff','stroke-width':1.2}, g);
+    if (status==='online'){
+      sd.innerHTML = '<animate attributeName="r" values="2.4;2.8;2.4" dur="2s" repeatCount="indefinite"/>';
+    }
+    if (opts.shortName){
+      const lbl = ELEM('text', {x: base[0], y: base[1]+15, 'text-anchor':'middle', 'font-size':9, 'font-weight':600, fill:'#2c2c2a', 'pointer-events':'none'}, g);
+      lbl.textContent = opts.shortName;
+    }
+    g.addEventListener('click', function(){ selectEntity({type:'person', id: opts.id}); });
+  });
+}
+
+function agente(gx, gy, agent){
+  const screen = agent.status==='P1' ? '#16a34a' : agent.status==='P2' ? '#d97706' : '#9aa0a6';
+  mesa(gx, gy, 1.6, 0.85, '#f1ead6');
+  monitor(gx + 0.5, gy + 0.05, screen, agent.running);
+  cadeira(gx + 0.55, gy + 1.0);
+  enq(gx+gy+0.45, ()=>{
+    const z = 0.55;
+    const m = iso(gx + 1.3, gy + 0.35, z);
+    ELEM('rect',{x:m[0]-3,y:m[1]-5,width:6,height:6, fill:'#fff', stroke:'#888'}, layers.furniture);
+    ELEM('path',{d:'M '+(m[0]+3)+' '+(m[1]-3)+' q 2 0 2 2 q 0 2 -2 2', fill:'none', stroke:'#888','stroke-width':1}, layers.furniture);
+    const p1 = iso(gx + 0.18, gy + 0.55, z);
+    ELEM('rect',{x:p1[0]-4,y:p1[1]-4,width:11,height:7, fill:'#fff', stroke:'rgba(0,0,0,0.2)','stroke-width':0.6, transform:'rotate(-12 '+p1[0]+' '+p1[1]+')'}, layers.furniture);
+  });
+  enq(gx+gy+0.7, ()=>{
+    const a=iso(gx,gy,0), b=iso(gx+1.6,gy,0), c=iso(gx+1.6,gy+1.6,0), d=iso(gx,gy+1.6,0);
+    const hot = ELEM('polygon', {points: poly([a,b,c,d]), fill:'transparent',
+      class:'obj interactive agent', 'data-kind':'agent','data-id': agent.id, 'data-models': (agent.models||[]).join(',')}, layers.people);
+    hot.addEventListener('click', function(){ selectEntity({type:'agent', id: agent.id}); });
+    const lbl = iso(gx+0.8, gy-0.05, 0.95);
+    const w = 9 * agent.name.length + 14;
+    ELEM('rect', {x:lbl[0]-w/2, y:lbl[1]-9, width:w, height:14, rx:7,
+      fill:'#ffffff', stroke:'rgba(0,0,0,0.10)','stroke-width':0.8, filter:'url(#soft)'}, layers.labels);
+    ELEM('circle',{cx:lbl[0]-w/2+8, cy:lbl[1]-2, r:2.6, fill: screen}, layers.labels);
+    const t = ELEM('text', {x:lbl[0]+5, y:lbl[1]+1, 'text-anchor':'middle', 'font-size':9.5, 'font-weight':600, fill:'#2c2c2a'}, layers.labels);
+    t.textContent = agent.name;
+  });
+}
+
+const ROOMS = [
+  { key:'dir', x:0,  y:0, w:6, d:6, label:'DIRETORIA',  sub:'3 agentes IA · 1 humano',  floor:'var(--eo-floor-dir)', wallDecor:['screen','art'] },
+  { key:'mkt', x:6,  y:0, w:6, d:6, label:'MARKETING',  sub:'5 agentes IA · 5 humanos', floor:'var(--eo-floor-mkt)', wallDecor:['whiteboard','screen'] },
+  { key:'com', x:12, y:0, w:6, d:6, label:'COMERCIAL',  sub:'6 agentes IA · 1 humano',  floor:'var(--eo-floor-com)', wallDecor:['screen','whiteboard'] },
+  { key:'dev', x:18, y:0, w:6, d:6, label:'DEV & IA',   sub:'3 agentes IA · 1 humano',  floor:'var(--eo-floor-dev)', wallDecor:['shelf','screen'] },
+  { key:'prj', x:0,  y:6, w:8, d:7, label:'PROJETOS',   sub:'6 modelos · 4 clientes',   floor:'var(--eo-floor-prj)', wallDecor:['window','art'] },
+  { key:'mtg', x:8,  y:6, w:8, d:7, label:'SALA DE REUNIÃO', sub:'mesa redonda',        floor:'var(--eo-floor-mtg)', wallDecor:['screen','window'] },
+  { key:'lib', x:16, y:6, w:8, d:7, label:'BIBLIOTECA', sub:'4 agentes IA · acervo',    floor:'var(--eo-floor-lib)', wallDecor:['shelf','shelf'] },
+];
+
+const AGENTS = [
+  { id:'ag-ceo', dept:'dir', name:'CEO',            x:0.6, y:1.4, status:'P1', running:true,  desc:'Síntese executiva semanal · prioriza entre modelos. Roda toda segunda-feira automaticamente.', models:['A','B','C','D','E','F'], invocations:42, success:97, lastRun:'há 6 min', supervisor:['p-au'] },
+  { id:'ag-est', dept:'dir', name:'Estrategista',   x:2.8, y:1.4, status:'P1', running:false, desc:'Trade-offs · planos 30/60/90 · sparring partner pra grandes decisões.', models:['C','D','F'], invocations:18, success:93, lastRun:'há 2 h', supervisor:['p-au','p-pa'] },
+  { id:'ag-aud', dept:'dir', name:'Auditor',        x:0.6, y:3.6, status:'P1', running:false, desc:'Red team antes de decisões irreversíveis · checagem de premissas.', models:['D'], invocations:7, success:100, lastRun:'há 3 dias', supervisor:['p-ma'] },
+  { id:'ag-cnt', dept:'mkt', name:'Conteúdo',       x:0.6, y:1.4, status:'P1', running:true,  desc:'Roteiros, copy, ideação. Foco F + apoia A.', models:['A','E','F'], invocations:88, success:91, lastRun:'há 12 min', supervisor:['p-pa'] },
+  { id:'ag-bv',  dept:'mkt', name:'Brand Voice',    x:2.8, y:1.4, status:'P1', running:false, desc:'Mantém narrativa consistente do Augusto.', models:['A','C','F'], invocations:54, success:96, lastRun:'há 28 min', supervisor:['p-pa'] },
+  { id:'ag-trf', dept:'mkt', name:'Tráfego',        x:0.6, y:3.6, status:'P1', running:false, desc:'Apoia Bryan. Monitora campanhas, briefings, alertas de gargalo.', models:['A'], invocations:31, success:88, lastRun:'há 1 h', supervisor:['p-pa','p-br'] },
+  { id:'ag-cal', dept:'mkt', name:'Cal. Editorial', x:2.8, y:3.6, status:'P1', running:false, desc:'Cadência · pauta dos 3 pilares (saída, autoridade, expansão).', models:['F'], invocations:24, success:100, lastRun:'há 4 h', supervisor:['p-pa'] },
+  { id:'ag-mtr', dept:'mkt', name:'Mentor',         x:4.1, y:3.6, status:'dorm', running:false, desc:'Roteiriza conteúdo educacional. Ativa pós-saída.', models:['E'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
+  { id:'ag-prv', dept:'com', name:'Pré-venda',      x:0.6, y:1.4, status:'P1', running:true,  desc:'Qualifica leads · BANT/SPIN · agenda calls.', models:['A','B'], invocations:127, success:84, lastRun:'há 2 min', supervisor:['p-au'] },
+  { id:'ag-fec', dept:'com', name:'Fechamento',     x:2.8, y:1.4, status:'P2', running:false, desc:'Scripts high ticket EUA + BR · objeções · propostas.', models:['B'], invocations:14, success:71, lastRun:'há 3 h', supervisor:['p-au'] },
+  { id:'ag-crm', dept:'com', name:'CRM/Follow-up', x:4.1, y:1.4, status:'P1', running:false, desc:'Pipeline · automações · tempo de resposta.', models:['A','B','C'], invocations:72, success:99, lastRun:'há 38 min', supervisor:['p-au'] },
+  { id:'ag-log', dept:'com', name:'Logística',      x:0.6, y:3.6, status:'P2', running:false, desc:'Hotel · traslado · jornada do paciente (B + D).', models:['B','D'], invocations:8, success:88, lastRun:'há 6 h', supervisor:['p-au'] },
+  { id:'ag-eua', dept:'com', name:'EUA',            x:2.8, y:3.6, status:'P2', running:false, desc:'Context expert: clínicas EUA, regulação, pacientes.', models:['A','D'], invocations:12, success:92, lastRun:'há 1 dia', supervisor:['p-au'] },
+  { id:'ag-bra', dept:'com', name:'Brasil',         x:4.1, y:3.6, status:'P2', running:false, desc:'Parceiros, providers, regulação CFM/CFO.', models:['B','D'], invocations:6, success:100, lastRun:'há 2 dias', supervisor:['p-au'] },
+  { id:'ag-cns', dept:'dev', name:'Construtor',     x:0.6, y:1.4, status:'P1', running:false, desc:'Cria/itera os outros agentes (meta-agente).', models:['D'], invocations:9, success:89, lastRun:'há 5 h', supervisor:['p-ma'] },
+  { id:'ag-aut', dept:'dev', name:'Automação',      x:2.8, y:1.4, status:'P1', running:true,  desc:'n8n · MCPs · integrações CRM · WhatsApp.', models:['A','D'], invocations:215, success:98, lastRun:'em execução', supervisor:['p-ma'] },
+  { id:'ag-dad', dept:'dev', name:'Dados',          x:0.6, y:3.6, status:'P2', running:false, desc:'Dashboards · KPIs por modelo · queries semanais.', models:['A','C','D'], invocations:38, success:95, lastRun:'há 1 h', supervisor:['p-ma'] },
+  { id:'ag-cur', dept:'lib', name:'Curador',        x:0.6, y:1.4, status:'P1', running:false, desc:'Mantém workspace · dossiês · decisões atualizadas.', models:['C','E'], invocations:46, success:97, lastRun:'há 22 min', supervisor:['p-au'] },
+  { id:'ag-doc', dept:'lib', name:'Documentador',   x:2.8, y:1.4, status:'P1', running:false, desc:'Extrai playbooks da cabeça do Augusto. Urgente: Lumina.', models:['C'], invocations:23, success:90, lastRun:'há 2 h', supervisor:['p-au'] },
+  { id:'ag-fin', dept:'lib', name:'Financeiro',     x:0.6, y:3.6, status:'dorm', running:false, desc:'Caixa · comissões · projeções · pricing.', models:['A','B','C','D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
+  { id:'ag-jur', dept:'lib', name:'Jurídico',       x:2.8, y:3.6, status:'dorm', running:false, desc:'Contratos · sinaliza quando precisa advogado humano.', models:['D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-ma'] },
+];
+
+const PROJETOS_BOARDS = [
+  { letter:'A', name:'Lumina · EUA',     status:'ativo',     statusColor:'#16a34a' },
+  { letter:'B', name:'protegido',        status:'cauteloso', statusColor:'#d97706' },
+  { letter:'C', name:'protegido',        status:'incubando', statusColor:'#9aa0a6' },
+  { letter:'D', name:'Aesthetica',       status:'ativo',     statusColor:'#16a34a' },
+  { letter:'E', name:'protegido',        status:'pós-saída', statusColor:'#9aa0a6' },
+  { letter:'F', name:'Marca pessoal',    status:'ativo',     statusColor:'#16a34a' },
+];
+
+const PEOPLE = [
+  { id:'p-au', dept:'dir', name:'Augusto Miranda', shortName:'Augusto', initials:'AU', kind:'nucleo', x:4.6, y:2.5, role:'CEO · cliente final de 5 das 6 áreas', desc:'Liderança estratégica · high-touch · operações internacionais · curadoria do conhecimento.', models:['A','B','C','D','E','F'], status:'online', channels:['WhatsApp · sócios','Slack QG','Email'], salary:null, supervisesAgents:['ag-ceo','ag-est','ag-aud','ag-prv','ag-fec','ag-crm','ag-cur','ag-doc','ag-fin','ag-log','ag-eua','ag-bra'], opts:{} },
+  { id:'p-pa', dept:'mkt', name:'Pablo Bianchi',   shortName:'Pablo',   initials:'PA', kind:'nucleo', x:4.6, y:1.4, role:'Diretor de Marca & Marketing · sócio potencial', desc:'Co-responsável Lumina · canal de leads pra Modelo C via Goiânia · direciona Antonio em A.', models:['A','C','F'], status:'online', channels:['WhatsApp · sócios','Slack QG'], salary:null, supervisesAgents:['ag-cnt','ag-bv','ag-trf','ag-cal','ag-est'], opts:{} },
+  { id:'p-at', dept:'mkt', name:'Antonio',  shortName:'Antonio',  initials:'AT', kind:'exec',   x:0.8, y:5.0, role:'Social Media · executor', desc:'Recebe pauta pré-aprovada. Augusto comanda em F; Pablo direciona em A. Não sabe do macro.', models:['A','F'], status:'online', channels:['WhatsApp'], salary:'R$ 1.000/mês', supervisesAgents:[], opts:{hairStyle:'short'} },
+  { id:'p-br', dept:'mkt', name:'Bryan',    shortName:'Bryan',    initials:'BR', kind:'exec',   x:2.2, y:5.0, role:'Gestor de tráfego · executor', desc:'Operação paid ads. Apoiado pelo agente Tráfego (cobre gap de proatividade).', models:['A'], status:'offline', channels:['WhatsApp'], salary:'R$ 1.500/mês', supervisesAgents:[], opts:{} },
+  { id:'p-we', dept:'mkt', name:'Well',     shortName:'Well',     initials:'WE', kind:'exec',   x:3.6, y:5.0, role:'Videomaker · executor + parceiro de network', desc:'Edição de vídeo (A + F). Origem do Modelo B (apresentou Cássio).', models:['A','B','F'], status:'busy', channels:['WhatsApp'], salary:'R$ 1.600 (8 vídeos)/mês', supervisesAgents:[], opts:{hairStyle:'short', glasses:true} },
+  { id:'p-an', dept:'mkt', name:'Andressa', shortName:'Andressa', initials:'AN', kind:'orbit',  x:5.0, y:5.0, role:'Atendimento Lumina + liderada interna', desc:'Caso especial — dupla função (interna + freelancer Lumina pelo Augusto).', models:['A'], status:'online', channels:['WhatsApp Business'], salary:'R$ 2.500/mês', supervisesAgents:[], opts:{hairStyle:'long'} },
+  { id:'p-ma', dept:'dev', name:'Matheus de Sousa',shortName:'Matheus', initials:'MA', kind:'nucleo', x:4.6, y:2.5, role:'Diretor de Tecnologia & IA · sócio potencial', desc:'Lidera Tec & IA · constrói os agentes · MCPs · plataforma D. Pouco contato com cliente.', models:['D'], status:'busy', channels:['Slack QG','GitHub'], salary:null, supervisesAgents:['ag-cns','ag-aut','ag-dad','ag-aud','ag-jur'], opts:{glasses:true} },
+  { id:'p-cy', dept:'prj', name:'Dra. Cynthia Lumina', shortName:'Cynthia', initials:'CY', kind:'client', x:0.6, y:3.6, role:'Cliente · Modelo A · clínica EUA', desc:'High-touch. Sócia do Dr. Rey. $2.000 USD fixos + 10% por procedimento.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{hairStyle:'long'} },
+  { id:'p-re', dept:'prj', name:'Dr. Rey', shortName:'Rey', initials:'RE', kind:'client', x:1.7, y:3.6, role:'Cliente · Modelo A · sócio da Cynthia', desc:'Relacionamento direto com Augusto via WhatsApp.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{} },
+  { id:'p-ca', dept:'prj', name:'Dr. Cássio', shortName:'Cássio', initials:'CA', kind:'client', x:5.4, y:3.6, role:'Cliente · Modelo B · clínica capilar BR', desc:'20% por caso direcionado. Origem: Well apresentou. Pipeline: 1 caso em 2 semanas.', models:['B'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true} },
+  { id:'p-th', dept:'prj', name:'Thomas · Aesthetica', shortName:'Thomas', initials:'TH', kind:'client', x:6.5, y:3.6, role:'Cliente · Modelo D · turismo médico', desc:'Único contato D · concentração de relacionamento. Sinalizou Stark Law / Anti-Kickback Florida.', models:['D'], status:'busy', channels:['Email','WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true, hairStyle:'short'} },
+];
+
+defs();
+makeLayers();
+
+const ROOM_BY_KEY = Object.fromEntries(ROOMS.map(r=>[r.key, r]));
+const PERSON_BY_ID = Object.fromEntries(PEOPLE.map(p=>[p.id, p]));
+const AGENT_BY_ID = Object.fromEntries(AGENTS.map(a=>[a.id, a]));
+
+ROOMS.forEach(r => pisoSala(r.x, r.y, r.w, r.d, r.floor));
+tapete(8.5, 6.5, 7, 6, '#d8dff0');
+tapete(0.5, 7.5, 7, 3, '#f3d9c4');
+
+function drawRoomWalls(r, h){
+  h = h || 1.4;
+  const decors = r.wallDecor || [];
+  parede([r.x, r.y], [r.x + r.w, r.y], h, decors[0]);
+  parede([r.x, r.y], [r.x, r.y + r.d], h, decors[1]);
+}
+ROOMS.forEach(r => drawRoomWalls(r, 1.4));
+parede([0, 6], [24, 6], 1.4);
+parede([24, 0], [24, 13], 1.4);
+parede([0, 13], [24, 13], 1.4);
+
+ROOMS.filter(r=>r.label).forEach(r=>{
+  enq((r.x+r.y)*0.001 + 0.0001, ()=>{
+    const c = iso(r.x + r.w/2, r.y + 0.45);
+    const lbl = ELEM('text', {x:c[0], y:c[1]+4, class:'room-label'}, layers.labels);
+    lbl.textContent = r.label;
+    if (r.sub){
+      const c2 = iso(r.x + r.w/2, r.y + 0.95);
+      const sub = ELEM('text', {x:c2[0], y:c2[1]+4, class:'room-sub'}, layers.labels);
+      sub.textContent = r.sub;
+    }
+  });
+});
+
+(function(){
+  const r = ROOM_BY_KEY['mtg'];
+  const cx = r.x + r.w/2, cy = r.y + r.d/2 + 0.4;
+  mesaRedonda(cx, cy, 1.5, '#e5d8b0');
+  [[cx - 2.2, cy - 1.0], [cx + 1.6, cy - 1.0], [cx - 2.6, cy + 0.5], [cx + 2.0, cy + 0.5], [cx - 1.8, cy + 1.7], [cx + 1.2, cy + 1.7]].forEach(p => cadeira(p[0], p[1], '#1f2937'));
+  planta(r.x + 0.3, r.y + 0.4, 'palm');
+  planta(r.x + r.w - 1.4, r.y + 0.4, 'palm');
+  planta(r.x + 0.3, r.y + r.d - 1.3, 'small');
+  planta(r.x + r.w - 1.4, r.y + r.d - 1.3, 'small');
+})();
+
+(function(){
+  const r = ROOM_BY_KEY['lib'];
+  function estanteEste(gx, gy, len){
+    const z=1.2, w=0.4, d=len;
+    const top  = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx,gy+d,z)];
+    const front= [iso(gx,gy+d,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx,gy+d,0)];
+    const east = [iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx+w,gy,0)];
+    enq(gx+gy+0.25, ()=>{
+      ELEM('polygon',{points: poly(east), fill:'#5d3f23'}, layers.furniture);
+      ELEM('polygon',{points: poly(front), fill:'#7d5938', stroke:'rgba(0,0,0,0.18)'}, layers.furniture);
+      ELEM('polygon',{points: poly(top), fill:'#8e6843', stroke:'rgba(0,0,0,0.2)'}, layers.furniture);
+      const colors = ['#185fa5','#dc2626','#16a34a','#7c2d12','#475569','#9d174d','#0e7490','#854d0e'];
+      const shelves = 3;
+      for (let s=0; s<shelves; s++){
+        const sz = z * (1 - (s+1)/(shelves+1));
+        for (let bi = 0; bi < d*4; bi++){
+          const by = gy + bi/(d*4) * d;
+          const bh = 0.18 + Math.random()*0.08;
+          const a=iso(gx, by, sz+bh), b=iso(gx, by+0.18, sz+bh);
+          const a2=iso(gx, by, sz), b2=iso(gx, by+0.18, sz);
+          ELEM('polygon',{points: poly([a,b,b2,a2]), fill: colors[(bi+s)%colors.length]}, layers.furniture);
+        }
+        const sa=iso(gx, gy, sz), sb=iso(gx+w, gy, sz);
+        const sc=iso(gx+w, gy+d, sz), sd=iso(gx, gy+d, sz);
+        ELEM('polygon',{points:poly([sa,sb,sc,sd]), fill:'#5d3f23', opacity:.7}, layers.furniture);
+      }
+    });
+  }
+  estanteEste(r.x + r.w - 0.4, r.y + 0.5, 5.5);
+  mesaRedonda(r.x + r.w - 2.2, r.y + r.d - 1.6, 0.8, '#d8c69a');
+  cadeira(r.x + r.w - 3.4, r.y + r.d - 2.4, '#3b3b39');
+  cadeira(r.x + r.w - 1.4, r.y + r.d - 2.4, '#3b3b39');
+  cadeira(r.x + r.w - 3.4, r.y + r.d - 0.8, '#3b3b39');
+  planta(r.x + 0.2, r.y + r.d - 1.4, 'ficus');
+})();
+
+(function(){
+  const r = ROOM_BY_KEY['prj'];
+  function quadroProjeto(gx, gy, model){
+    const h = 1.0, w = 0.95;
+    const a = iso(gx, gy, h+0.4);
+    const b = iso(gx + w, gy, h+0.4);
+    const c = iso(gx + w, gy, h-0.05);
+    const d = iso(gx, gy, h-0.05);
+    enq((gx+gy)*0.5 - 0.05, ()=>{
+      ELEM('polygon',{points: poly([a,b,c,d]), fill:'#fff', stroke:'#3b2f24','stroke-width':1.6}, layers.wallDecor);
+      const ah = iso(gx, gy, h+0.4);
+      const bh = iso(gx + w, gy, h+0.4);
+      const ch = iso(gx + w, gy, h+0.32);
+      const dh = iso(gx, gy, h+0.32);
+      ELEM('polygon',{points: poly([ah,bh,ch,dh]), fill: model.statusColor}, layers.wallDecor);
+      const cx = (a[0]+b[0])/2, cy = (a[1]+c[1])/2;
+      const t = ELEM('text',{x:cx, y:cy+4, 'text-anchor':'middle', 'font-size':22, 'font-weight':800, fill:'#1a1a18', 'letter-spacing':'.04em'}, layers.wallDecor);
+      t.textContent = model.letter;
+      const sub = ELEM('text',{x:cx, y:c[1]-6, 'text-anchor':'middle', 'font-size':7, 'font-weight':600, fill:'#5a5a55'}, layers.wallDecor);
+      sub.textContent = model.name.toUpperCase();
+      const stat = ELEM('text',{x:cx, y:c[1]+2, 'text-anchor':'middle', 'font-size':6.5, 'font-weight':700, fill: model.statusColor, 'letter-spacing':'.06em'}, layers.wallDecor);
+      stat.textContent = model.status.toUpperCase();
+    });
+  }
+  const wallWidth = r.w - 0.4;
+  const slot = wallWidth / 6;
+  PROJETOS_BOARDS.forEach((m, i) => {
+    quadroProjeto(r.x + 0.2 + i * slot + (slot - 0.95)/2, r.y + 0.02, m);
+  });
+  sofa(r.x + 0.6, r.y + 2.0, 6.5, '#7c8aa6');
+  mesaCafe(r.x + 1.4, r.y + 1.2, '#6b4b25');
+  mesaCafe(r.x + 5.4, r.y + 1.2, '#6b4b25');
+  planta(r.x + 0.2, r.y + 5.4, 'palm');
+  planta(r.x + r.w - 1.2, r.y + 5.4, 'ficus');
+  planta(r.x + r.w - 1.2, r.y + 1.2, 'small');
+})();
+
+AGENTS.forEach(a => {
+  const room = ROOM_BY_KEY[a.dept];
+  agente(room.x + a.x, room.y + a.y, a);
+});
+
+PEOPLE.forEach(p => {
+  const room = ROOM_BY_KEY[p.dept];
+  pessoa(room.x + p.x, room.y + p.y, p.initials, p.kind, {
+    id: p.id, models: p.models, shortName: p.shortName, status: p.status,
+    glasses: p.opts && p.opts.glasses, hairStyle: p.opts && p.opts.hairStyle,
+    pose: 'standing'
+  });
+});
+
+flush();
+
+let currentSel = null;
+
+function selectEntity(sel){
+  currentSel = sel;
+  document.querySelectorAll('.obj.selected').forEach(e=>e.classList.remove('selected'));
+  layers.conn.innerHTML = '';
+  if (!sel){
+    panel.className = 'panel empty';
+    panel.innerHTML = '<div>Clique em qualquer pessoa, agente ou sala para ver o detalhe operacional aqui.</div>';
+    document.getElementById('selectionBadge').style.display = 'none';
+    return;
+  }
+  const node = svg.querySelector('[data-id="'+sel.id+'"]');
+  if (node) node.classList.add('selected');
+  document.getElementById('selectionBadge').style.display = 'flex';
+  if (sel.type === 'agent') renderAgentPanel(sel.id);
+  else if (sel.type === 'person') renderPersonPanel(sel.id);
+  drawConnections(sel);
+}
+window.selectEntity = selectEntity;
+
+function avatarHTML(initials, kind){
+  const c = {nucleo:'var(--eo-blue)', exec:'var(--eo-ocre)', orbit:'var(--eo-rose)', client:'var(--eo-teal)', agent:'#1a1a18'}[kind] || '#475569';
+  return '<div class="av" style="background:'+c+'">'+initials+'</div>';
+}
+function statusBadge(s){
+  if (s==='P1') return '<span class="b green">ativo · P1</span>';
+  if (s==='P2') return '<span class="b amber">ativo · P2</span>';
+  if (s==='dorm') return '<span class="b dorm">dormente</span>';
+  if (s==='online') return '<span class="b green">online</span>';
+  if (s==='busy') return '<span class="b amber">ocupado</span>';
+  if (s==='offline') return '<span class="b dorm">offline</span>';
+  return '';
+}
+function modelChips(models){
+  return (models||[]).map(m=>'<span class="b model">'+m+'</span>').join('');
+}
+function sparklineSVG(data){
+  if (!data.length) return '';
+  const max = Math.max.apply(null, data.concat([1])), min = Math.min.apply(null, data.concat([0]));
+  const w = 200, h = 32, pad = 2;
+  const step = (w - pad*2) / (data.length - 1 || 1);
+  const points = data.map((v,i)=>[pad + i*step, h - pad - ((v-min)/(max-min || 1)) * (h - pad*2)]);
+  const path = points.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+  const fillPath = path + ' L '+(w-pad)+' '+(h-pad)+' L '+pad+' '+(h-pad)+' Z';
+  return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg"><path d="'+fillPath+'" fill="rgba(24,95,165,0.12)"/><path d="'+path+'" fill="none" stroke="var(--eo-blue)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function renderAgentPanel(id){
+  const a = AGENT_BY_ID[id]; if (!a) return;
+  const room = ROOM_BY_KEY[a.dept];
+  const supervisors = (a.supervisor||[]).map(pid => PERSON_BY_ID[pid]).filter(Boolean);
+  const series = Array.from({length: 14}, ()=> Math.round(Math.random() * (a.invocations*0.9 + 4)));
+  panel.className = 'panel';
+  panel.innerHTML =
+    '<div class="panel-head">'+
+      avatarHTML(a.name.split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase(),'agent')+
+      '<div>'+
+        '<h3 class="name">'+a.name+'</h3>'+
+        '<div class="role">Agente IA · '+(room ? room.label : '')+'</div>'+
+        '<div class="badge-list" style="margin-top:6px">'+statusBadge(a.status)+(a.running?'<span class="b green">rodando agora</span>':'')+modelChips(a.models)+'</div>'+
+      '</div>'+
+      '<button class="close" id="panelClose" aria-label="Fechar">×</button>'+
+    '</div>'+
+    '<div class="panel-body">'+
+      '<div class="panel-section"><p>'+a.desc+'</p></div>'+
+      '<div class="panel-section">'+
+        '<h4>Operação</h4>'+
+        '<div class="metric">'+
+          '<div class="m"><div class="v">'+a.invocations+'</div><div class="l">invocações · 7d</div></div>'+
+          '<div class="m"><div class="v">'+a.success+'%</div><div class="l">sucesso</div></div>'+
+          '<div class="m"><div class="v" style="font-size:13px; padding-top:3px">'+a.lastRun+'</div><div class="l">última execução</div></div>'+
+        '</div>'+
+        sparklineSVG(series)+
+      '</div>'+
+      '<div class="panel-section">'+
+        '<h4>Humanos próximos</h4>'+
+        '<div class="related">'+
+          (supervisors.length ? supervisors.map(p=>'<div class="row" data-jump="person:'+p.id+'">'+avatarHTML(p.initials, p.kind)+'<div><div class="meta">'+p.name+'</div><div class="submeta">'+p.role+'</div></div></div>').join('') : '<div style="font-size:12px; color:var(--eo-ink-faint)">Sem supervisor designado</div>')+
+        '</div>'+
+      '</div>'+
+      '<div class="panel-section">'+
+        '<h4>Ações</h4>'+
+        '<div class="actions">'+
+          '<button class="btn primary">▶ Rodar agora</button>'+
+          '<button class="btn">Ver logs</button>'+
+          '<button class="btn">Editar prompt</button>'+
+          '<button class="btn">Pausar</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  attachPanelHandlers();
+  document.getElementById('selectionName').textContent = a.name;
+}
+function statusLabelTxt(a){
+  const m = (a.models||[]).join(', ');
+  const s = a.status==='P1'?'P1':a.status==='P2'?'P2':'dormente';
+  return s + ' · modelos: ' + (m||'—');
+}
+function renderPersonPanel(id){
+  const p = PERSON_BY_ID[id]; if (!p) return;
+  const room = ROOM_BY_KEY[p.dept];
+  const agents = (p.supervisesAgents||[]).map(aid => AGENT_BY_ID[aid]).filter(Boolean);
+  panel.className = 'panel';
+  panel.innerHTML =
+    '<div class="panel-head">'+
+      avatarHTML(p.initials, p.kind)+
+      '<div>'+
+        '<h3 class="name">'+p.name+'</h3>'+
+        '<div class="role">'+p.role+'</div>'+
+        '<div class="badge-list" style="margin-top:6px">'+statusBadge(p.status)+modelChips(p.models)+(p.salary?'<span class="b outline">'+p.salary+'</span>':'')+'</div>'+
+      '</div>'+
+      '<button class="close" id="panelClose" aria-label="Fechar">×</button>'+
+    '</div>'+
+    '<div class="panel-body">'+
+      '<div class="panel-section"><p>'+p.desc+'</p></div>'+
+      '<div class="panel-section"><h4>Sala / departamento</h4><div class="kv"><dt>Localização</dt><dd>'+(room ? room.label : '—')+'</dd></div></div>'+
+      '<div class="panel-section"><h4>Canais ativos</h4><div class="badge-list">'+((p.channels||[]).map(c=>'<span class="b outline">'+c+'</span>').join('') || '<span style="font-size:12px; color:var(--eo-ink-faint)">—</span>')+'</div></div>'+
+      (agents.length ? '<div class="panel-section"><h4>Supervisiona '+agents.length+' agente(s) IA</h4><div class="related">'+agents.map(a=>'<div class="row" data-jump="agent:'+a.id+'">'+avatarHTML(a.name.split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase(),'agent')+'<div><div class="meta">'+a.name+'</div><div class="submeta">'+statusLabelTxt(a)+'</div></div></div>').join('')+'</div></div>' : '')+
+      '<div class="panel-section"><h4>Ações</h4><div class="actions">'+((p.channels||[]).slice(0,1).map(c=>'<button class="btn primary">💬 Falar via '+c.split('·')[0].trim()+'</button>').join(''))+'<button class="btn">Histórico</button><button class="btn">Adicionar nota</button></div></div>'+
+    '</div>';
+  attachPanelHandlers();
+  document.getElementById('selectionName').textContent = p.name;
+}
+function attachPanelHandlers(){
+  const close = document.getElementById('panelClose');
+  if (close) close.addEventListener('click', function(){ selectEntity(null); });
+  panel.querySelectorAll('[data-jump]').forEach(el=>{
+    el.addEventListener('click', function(){
+      const parts = el.getAttribute('data-jump').split(':');
+      selectEntity({type: parts[0], id: parts[1]});
+    });
+  });
+}
+function entityPosition(sel){
+  if (sel.type === 'agent'){
+    const a = AGENT_BY_ID[sel.id]; if (!a) return null;
+    const r = ROOM_BY_KEY[a.dept];
+    return iso(r.x + a.x + 0.8, r.y + a.y + 0.6, 0.9);
+  } else {
+    const p = PERSON_BY_ID[sel.id]; if (!p) return null;
+    const r = ROOM_BY_KEY[p.dept];
+    return iso(r.x + p.x + 0.5, r.y + p.y + 0.5, 1.0);
+  }
+}
+function drawConnections(sel){
+  layers.conn.innerHTML = '';
+  if (!sel) return;
+  const from = entityPosition(sel);
+  if (!from) return;
+  let targets = [];
+  if (sel.type === 'agent'){
+    const a = AGENT_BY_ID[sel.id];
+    targets = (a.supervisor||[]).map(pid => ({type:'person', id:pid}));
+  } else if (sel.type === 'person'){
+    const p = PERSON_BY_ID[sel.id];
+    targets = (p.supervisesAgents||[]).map(aid => ({type:'agent', id:aid}));
+  }
+  targets.forEach(t=>{
+    const to = entityPosition(t); if (!to) return;
+    const cx = (from[0]+to[0])/2;
+    const cy = Math.min(from[1], to[1]) - 50;
+    const path = 'M '+from[0]+' '+from[1]+' Q '+cx+' '+cy+' '+to[0]+' '+to[1];
+    ELEM('path',{d:path, class:'conn'}, layers.conn);
+    const node = svg.querySelector('[data-id="'+t.id+'"]');
+    if (node) node.classList.add('selected');
+  });
+}
+
+svg.addEventListener('click', function(e){
+  if (e.target === svg) selectEntity(null);
+});
+
+let activeModel = 'all';
+function applyModel(m){
+  activeModel = m;
+  document.querySelectorAll('#modelFilter .chip').forEach(c=>c.classList.toggle('on', c.dataset.m===m));
+  document.querySelectorAll('.obj.interactive').forEach(el=>{
+    const ms = (el.getAttribute('data-models')||'').split(',').filter(Boolean);
+    el.classList.toggle('dim', !(m==='all' || ms.includes(m)));
+  });
+  applyLens(activeLens);
+}
+document.querySelectorAll('#modelFilter .chip').forEach(c=>{
+  c.addEventListener('click', function(){ applyModel(c.dataset.m); });
+});
+
+let activeLens = 'default';
+function applyLens(l){
+  activeLens = l;
+  document.querySelectorAll('#lensFilter .chip').forEach(c=>c.classList.toggle('on', c.dataset.l===l));
+  layers.conn.innerHTML = '';
+  document.querySelectorAll('.obj.selected').forEach(e=>e.classList.remove('selected'));
+  if (l === 'default'){ /* nada */ }
+  else if (l === 'status'){
+    document.querySelectorAll('[data-kind="agent"]').forEach(el=>{
+      const a = AGENT_BY_ID[el.getAttribute('data-id')];
+      if (a && a.running) el.classList.add('selected');
+    });
+  } else if (l === 'dorm'){
+    document.querySelectorAll('.obj.interactive').forEach(el=>el.classList.add('dim'));
+    document.querySelectorAll('[data-kind="agent"]').forEach(el=>{
+      const a = AGENT_BY_ID[el.getAttribute('data-id')];
+      if (a && a.status==='dorm'){ el.classList.remove('dim'); el.classList.add('selected'); }
+    });
+  } else if (l === 'conn'){
+    AGENTS.forEach(a => {
+      const from = entityPosition({type:'agent', id:a.id});
+      (a.supervisor||[]).forEach(pid=>{
+        const to = entityPosition({type:'person', id:pid}); if (!to||!from) return;
+        const cx=(from[0]+to[0])/2, cy=Math.min(from[1],to[1])-40;
+        ELEM('path',{d:'M '+from[0]+' '+from[1]+' Q '+cx+' '+cy+' '+to[0]+' '+to[1], class:'conn', style:'opacity:.45'}, layers.conn);
+      });
+    });
+  }
+  if (activeModel !== 'all' && l !== 'dorm'){
+    document.querySelectorAll('.obj.interactive').forEach(el=>{
+      const ms = (el.getAttribute('data-models')||'').split(',').filter(Boolean);
+      el.classList.toggle('dim', !ms.includes(activeModel));
+    });
+  }
+}
+document.querySelectorAll('#lensFilter .chip').forEach(c=>{
+  c.addEventListener('click', function(){ applyLens(c.dataset.l); });
+});
+
+const q = document.getElementById('q');
+q.addEventListener('input', function(e){
+  const term = (e.target.value||'').trim().toLowerCase();
+  if (!term){
+    document.querySelectorAll('.obj.interactive').forEach(el=>el.classList.remove('dim'));
+    applyModel(activeModel); applyLens(activeLens);
+    return;
+  }
+  const matches = []
+    .concat(PEOPLE.filter(p => p.name.toLowerCase().includes(term) || (p.role||'').toLowerCase().includes(term) || (p.shortName||'').toLowerCase().includes(term)))
+    .concat(AGENTS.filter(a => a.name.toLowerCase().includes(term) || (a.desc||'').toLowerCase().includes(term)));
+  const ids = new Set(matches.map(m=>m.id));
+  document.querySelectorAll('.obj.interactive').forEach(el=>{
+    el.classList.toggle('dim', !ids.has(el.getAttribute('data-id')));
+  });
+});
+
+function tickLive(){
+  const ts = document.getElementById('liveTs');
+  if (!ts) return;
+  let n = parseInt(ts.dataset.n||'12', 10);
+  n = (n + 1) % 60;
+  ts.dataset.n = n;
+  ts.textContent = 'há '+n+'s';
+}
+setInterval(tickLive, 1000);
+
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') selectEntity(null); });
+})();
+</script>
