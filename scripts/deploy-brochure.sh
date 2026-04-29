@@ -15,8 +15,20 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DASHBOARD_DIR="$REPO_ROOT/dashboard"
+CADDYFILE_LOCAL="$REPO_ROOT/infra/Caddyfile.brochure"
 VPS_HOST="qg-vps"
 VPS_PATH="/var/www/qg-brochure/"
+VPS_CADDYFILE="/etc/caddy/Caddyfile"
+
+echo "→ Sincronizando Caddyfile (se mudou)"
+CADDY_CHANGED=$(rsync -avzc --dry-run "$CADDYFILE_LOCAL" "$VPS_HOST:$VPS_CADDYFILE" | grep -c "Caddyfile" || true)
+if [[ "$CADDY_CHANGED" -gt 0 ]]; then
+  rsync -avz "$CADDYFILE_LOCAL" "$VPS_HOST:$VPS_CADDYFILE"
+  ssh "$VPS_HOST" "caddy validate --config $VPS_CADDYFILE && systemctl reload caddy"
+  echo "  Caddy config atualizada e recarregada."
+else
+  echo "  Caddyfile já está sincronizado · sem reload."
+fi
 
 echo "→ Build do Astro"
 cd "$DASHBOARD_DIR"

@@ -1,0 +1,31 @@
+# Caddyfile · brochure mode (Fase 0)
+#
+# Servido em http://177.7.45.10:3000 (sem domínio, sem TLS)
+# Quando a Fase 2 entrar com bootstrap.sh do Matheus + Anything LLM + SSR,
+# essa config é substituída pela `infra/Caddyfile` (full stack).
+#
+# Sincronizado pra VPS via scripts/deploy-brochure.sh.
+
+:3000 {
+	root * /var/www/qg-brochure
+	encode gzip zstd
+	try_files {path} {path}/ {path}.html /index.html
+
+	# HTML: sempre revalida (deploys atualizam mesmo sem hash no nome)
+	@html {
+		path *.html
+		path */
+		path /
+	}
+	header @html Cache-Control "no-cache, must-revalidate"
+
+	# Assets do Astro: imutáveis (nome contém hash)
+	header /_astro/* Cache-Control "public, max-age=31536000, immutable"
+
+	file_server
+
+	log {
+		output file /var/log/caddy/qg-brochure.log
+		format json
+	}
+}
