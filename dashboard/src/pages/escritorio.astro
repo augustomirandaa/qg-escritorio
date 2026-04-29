@@ -49,7 +49,7 @@ import Base from "../layouts/Base.astro";
           <div class="badge"><span class="dot"></span>Vista ao vivo</div>
           <div class="badge" id="selectionBadge" style="display:none">Selecionado: <strong id="selectionName" style="margin-left:4px"></strong></div>
         </div>
-        <svg id="floor" class="floor" viewBox="0 0 1400 770" preserveAspectRatio="xMidYMid meet" aria-label="Planta isométrica do Escritório Virtual"></svg>
+        <svg id="floor" class="floor" viewBox="0 0 1500 800" preserveAspectRatio="xMidYMid meet" aria-label="Planta isométrica do Escritório Virtual"></svg>
       </div>
 
       <aside class="panel empty" id="panel">
@@ -95,13 +95,20 @@ import Base from "../layouts/Base.astro";
     --eo-ocre:#ba7517;
     --eo-rose:#d4537e;
 
-    --eo-floor-dir:#ece2f9;
+    /* deps (perímetro) */
     --eo-floor-mkt:#fde4cf;
     --eo-floor-com:#d8f0e1;
     --eo-floor-dev:#d6e3ef;
-    --eo-floor-prj:#fbe5d2;
-    --eo-floor-mtg:#eaf0ff;
     --eo-floor-lib:#f5e3da;
+    /* hub central */
+    --eo-floor-hub:#eaf0ff;
+    /* projetos (anel) — paleta única por modelo */
+    --eo-floor-prj-A:#dce8f7;  /* Lumina · azul claro */
+    --eo-floor-prj-B:#fbe5d2;  /* B · pêssego */
+    --eo-floor-prj-C:#ece2f9;  /* C · lavanda */
+    --eo-floor-prj-D:#dff2e7;  /* Aesthetica · menta */
+    --eo-floor-prj-E:#ece9e0;  /* E · areia */
+    --eo-floor-prj-F:#fbe7ee;  /* F · marca pessoal · rosa */
     --eo-floor-corridor:#e8e3d2;
 
     --eo-shadow-card: 0 1px 0 rgba(255,255,255,.6) inset, 0 1px 2px rgba(0,0,0,.05), 0 8px 24px -12px rgba(0,0,0,.18);
@@ -262,8 +269,8 @@ const NS = 'http://www.w3.org/2000/svg';
 const svg = document.getElementById('floor');
 const panel = document.getElementById('panel');
 
-const TX = 34, TY = 17, TZ = 34;
-const OX = 480, OY = 40;
+const TX = 30, TY = 15, TZ = 30;
+const OX = 560, OY = 50;
 function iso(gx, gy, gz=0){ return [OX + (gx-gy)*TX, OY + (gx+gy)*TY - gz*TZ]; }
 function poly(pts){ return pts.map(p=>p.join(',')).join(' '); }
 function ELEM(tag, attrs={}, parent=svg){
@@ -600,61 +607,150 @@ function agente(gx, gy, agent){
   });
 }
 
+/* HUB & SPOKE: hub central · 6 projetos em pinwheel · 4 oficinas no perímetro */
+/* grid 26w × 18d */
 const ROOMS = [
-  { key:'dir', x:0,  y:0, w:6, d:6, label:'DIRETORIA',  sub:'3 agentes IA · 1 humano',  floor:'var(--eo-floor-dir)', wallDecor:['screen','art'] },
-  { key:'mkt', x:6,  y:0, w:6, d:6, label:'MARKETING',  sub:'5 agentes IA · 5 humanos', floor:'var(--eo-floor-mkt)', wallDecor:['whiteboard','screen'] },
-  { key:'com', x:12, y:0, w:6, d:6, label:'COMERCIAL',  sub:'6 agentes IA · 1 humano',  floor:'var(--eo-floor-com)', wallDecor:['screen','whiteboard'] },
-  { key:'dev', x:18, y:0, w:6, d:6, label:'DEV & IA',   sub:'3 agentes IA · 1 humano',  floor:'var(--eo-floor-dev)', wallDecor:['shelf','screen'] },
-  { key:'prj', x:0,  y:6, w:8, d:7, label:'PROJETOS',   sub:'6 modelos · 4 clientes',   floor:'var(--eo-floor-prj)', wallDecor:['window','art'] },
-  { key:'mtg', x:8,  y:6, w:8, d:7, label:'SALA DE REUNIÃO', sub:'mesa redonda',        floor:'var(--eo-floor-mtg)', wallDecor:['screen','window'] },
-  { key:'lib', x:16, y:6, w:8, d:7, label:'BIBLIOTECA', sub:'4 agentes IA · acervo',    floor:'var(--eo-floor-lib)', wallDecor:['shelf','shelf'] },
+  /* HUB central */
+  { key:'hub', x:10, y:7,  w:6,  d:4,  type:'hub',     label:'COMANDO',        sub:'sócios · diretoria',          floor:'var(--eo-floor-hub)', wallDecor:['screen','window'] },
+
+  /* 6 projetos · anel ao redor do hub */
+  { key:'prj-A', x:4,  y:3,  w:6, d:4, type:'project', letter:'A', label:'A · LUMINA',         sub:'$2k + 10%',          floor:'var(--eo-floor-prj-A)' },
+  { key:'prj-B', x:10, y:3,  w:6, d:4, type:'project', letter:'B', label:'B',                  sub:'piloto · capilar',   floor:'var(--eo-floor-prj-B)' },
+  { key:'prj-C', x:16, y:3,  w:6, d:4, type:'project', letter:'C', label:'C',                  sub:'leads via Goiânia',  floor:'var(--eo-floor-prj-C)' },
+  { key:'prj-D', x:16, y:11, w:6, d:4, type:'project', letter:'D', label:'D · AESTHETICA',     sub:'turismo médico',     floor:'var(--eo-floor-prj-D)' },
+  { key:'prj-E', x:10, y:11, w:6, d:4, type:'project', letter:'E', label:'E',                  sub:'pós-saída',          floor:'var(--eo-floor-prj-E)' },
+  { key:'prj-F', x:4,  y:11, w:6, d:4, type:'project', letter:'F', label:'F · MARCA',          sub:'marca pessoal',      floor:'var(--eo-floor-prj-F)' },
+
+  /* 4 oficinas departamentais · perímetro · onde os agentes "moram" */
+  { key:'mkt', x:4,  y:0,  w:18, d:3, type:'dept', label:'OFICINA · MARKETING',  sub:'5 agentes IA',  floor:'var(--eo-floor-mkt)', wallDecor:['whiteboard','screen'] },
+  { key:'com', x:22, y:3,  w:4,  d:12,type:'dept', label:'OFICINA · COMERCIAL',  sub:'6 agentes IA',  floor:'var(--eo-floor-com)', wallDecor:['screen','whiteboard'] },
+  { key:'dev', x:4,  y:15, w:18, d:3, type:'dept', label:'OFICINA · DEV & IA',   sub:'3 agentes IA',  floor:'var(--eo-floor-dev)', wallDecor:['shelf','screen'] },
+  { key:'lib', x:0,  y:3,  w:4,  d:12,type:'dept', label:'BIBLIOTECA',           sub:'4 agentes IA',  floor:'var(--eo-floor-lib)', wallDecor:['shelf','shelf'] },
 ];
 
+/* AGENTES IA · cada agente "mora" numa oficina (dept) ou no hub. Posições relativas à sala. */
 const AGENTS = [
-  { id:'ag-ceo', dept:'dir', name:'CEO',            x:0.6, y:1.4, status:'P1', running:true,  desc:'Síntese executiva semanal · prioriza entre modelos. Roda toda segunda-feira automaticamente.', models:['A','B','C','D','E','F'], invocations:42, success:97, lastRun:'há 6 min', supervisor:['p-au'] },
-  { id:'ag-est', dept:'dir', name:'Estrategista',   x:2.8, y:1.4, status:'P1', running:false, desc:'Trade-offs · planos 30/60/90 · sparring partner pra grandes decisões.', models:['C','D','F'], invocations:18, success:93, lastRun:'há 2 h', supervisor:['p-au','p-pa'] },
-  { id:'ag-aud', dept:'dir', name:'Auditor',        x:0.6, y:3.6, status:'P1', running:false, desc:'Red team antes de decisões irreversíveis · checagem de premissas.', models:['D'], invocations:7, success:100, lastRun:'há 3 dias', supervisor:['p-ma'] },
-  { id:'ag-cnt', dept:'mkt', name:'Conteúdo',       x:0.6, y:1.4, status:'P1', running:true,  desc:'Roteiros, copy, ideação. Foco F + apoia A.', models:['A','E','F'], invocations:88, success:91, lastRun:'há 12 min', supervisor:['p-pa'] },
-  { id:'ag-bv',  dept:'mkt', name:'Brand Voice',    x:2.8, y:1.4, status:'P1', running:false, desc:'Mantém narrativa consistente do Augusto.', models:['A','C','F'], invocations:54, success:96, lastRun:'há 28 min', supervisor:['p-pa'] },
-  { id:'ag-trf', dept:'mkt', name:'Tráfego',        x:0.6, y:3.6, status:'P1', running:false, desc:'Apoia Bryan. Monitora campanhas, briefings, alertas de gargalo.', models:['A'], invocations:31, success:88, lastRun:'há 1 h', supervisor:['p-pa','p-br'] },
-  { id:'ag-cal', dept:'mkt', name:'Cal. Editorial', x:2.8, y:3.6, status:'P1', running:false, desc:'Cadência · pauta dos 3 pilares (saída, autoridade, expansão).', models:['F'], invocations:24, success:100, lastRun:'há 4 h', supervisor:['p-pa'] },
-  { id:'ag-mtr', dept:'mkt', name:'Mentor',         x:4.1, y:3.6, status:'dorm', running:false, desc:'Roteiriza conteúdo educacional. Ativa pós-saída.', models:['E'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
-  { id:'ag-prv', dept:'com', name:'Pré-venda',      x:0.6, y:1.4, status:'P1', running:true,  desc:'Qualifica leads · BANT/SPIN · agenda calls.', models:['A','B'], invocations:127, success:84, lastRun:'há 2 min', supervisor:['p-au'] },
-  { id:'ag-fec', dept:'com', name:'Fechamento',     x:2.8, y:1.4, status:'P2', running:false, desc:'Scripts high ticket EUA + BR · objeções · propostas.', models:['B'], invocations:14, success:71, lastRun:'há 3 h', supervisor:['p-au'] },
-  { id:'ag-crm', dept:'com', name:'CRM/Follow-up', x:4.1, y:1.4, status:'P1', running:false, desc:'Pipeline · automações · tempo de resposta.', models:['A','B','C'], invocations:72, success:99, lastRun:'há 38 min', supervisor:['p-au'] },
-  { id:'ag-log', dept:'com', name:'Logística',      x:0.6, y:3.6, status:'P2', running:false, desc:'Hotel · traslado · jornada do paciente (B + D).', models:['B','D'], invocations:8, success:88, lastRun:'há 6 h', supervisor:['p-au'] },
-  { id:'ag-eua', dept:'com', name:'EUA',            x:2.8, y:3.6, status:'P2', running:false, desc:'Context expert: clínicas EUA, regulação, pacientes.', models:['A','D'], invocations:12, success:92, lastRun:'há 1 dia', supervisor:['p-au'] },
-  { id:'ag-bra', dept:'com', name:'Brasil',         x:4.1, y:3.6, status:'P2', running:false, desc:'Parceiros, providers, regulação CFM/CFO.', models:['B','D'], invocations:6, success:100, lastRun:'há 2 dias', supervisor:['p-au'] },
-  { id:'ag-cns', dept:'dev', name:'Construtor',     x:0.6, y:1.4, status:'P1', running:false, desc:'Cria/itera os outros agentes (meta-agente).', models:['D'], invocations:9, success:89, lastRun:'há 5 h', supervisor:['p-ma'] },
-  { id:'ag-aut', dept:'dev', name:'Automação',      x:2.8, y:1.4, status:'P1', running:true,  desc:'n8n · MCPs · integrações CRM · WhatsApp.', models:['A','D'], invocations:215, success:98, lastRun:'em execução', supervisor:['p-ma'] },
-  { id:'ag-dad', dept:'dev', name:'Dados',          x:0.6, y:3.6, status:'P2', running:false, desc:'Dashboards · KPIs por modelo · queries semanais.', models:['A','C','D'], invocations:38, success:95, lastRun:'há 1 h', supervisor:['p-ma'] },
-  { id:'ag-cur', dept:'lib', name:'Curador',        x:0.6, y:1.4, status:'P1', running:false, desc:'Mantém workspace · dossiês · decisões atualizadas.', models:['C','E'], invocations:46, success:97, lastRun:'há 22 min', supervisor:['p-au'] },
-  { id:'ag-doc', dept:'lib', name:'Documentador',   x:2.8, y:1.4, status:'P1', running:false, desc:'Extrai playbooks da cabeça do Augusto. Urgente: Lumina.', models:['C'], invocations:23, success:90, lastRun:'há 2 h', supervisor:['p-au'] },
-  { id:'ag-fin', dept:'lib', name:'Financeiro',     x:0.6, y:3.6, status:'dorm', running:false, desc:'Caixa · comissões · projeções · pricing.', models:['A','B','C','D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
-  { id:'ag-jur', dept:'lib', name:'Jurídico',       x:2.8, y:3.6, status:'dorm', running:false, desc:'Contratos · sinaliza quando precisa advogado humano.', models:['D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-ma'] },
+  /* HUB · 3 agentes da diretoria (servem o portfólio inteiro) */
+  { id:'ag-ceo', dept:'hub', name:'CEO',            x:0.4, y:0.3, status:'P1', running:true,  desc:'Síntese executiva semanal · prioriza entre modelos. Roda toda segunda-feira automaticamente.', models:['A','B','C','D','E','F'], invocations:42, success:97, lastRun:'há 6 min', supervisor:['p-au'] },
+  { id:'ag-est', dept:'hub', name:'Estrategista',   x:2.2, y:0.3, status:'P1', running:false, desc:'Trade-offs · planos 30/60/90 · sparring partner pra grandes decisões.', models:['C','D','F'], invocations:18, success:93, lastRun:'há 2 h', supervisor:['p-au','p-pa'] },
+  { id:'ag-aud', dept:'hub', name:'Auditor',        x:4.0, y:0.3, status:'P1', running:false, desc:'Red team antes de decisões irreversíveis · checagem de premissas.', models:['D'], invocations:7, success:100, lastRun:'há 3 dias', supervisor:['p-ma'] },
+
+  /* MARKETING · 5 agentes em fila no top strip (18×3) */
+  { id:'ag-cnt', dept:'mkt', name:'Conteúdo',       x:1.0,  y:0.7, status:'P1', running:true,  desc:'Roteiros, copy, ideação. Foco F + apoia A.', models:['A','E','F'], invocations:88, success:91, lastRun:'há 12 min', supervisor:['p-pa'] },
+  { id:'ag-bv',  dept:'mkt', name:'Brand Voice',    x:4.4,  y:0.7, status:'P1', running:false, desc:'Mantém narrativa consistente do Augusto.', models:['A','C','F'], invocations:54, success:96, lastRun:'há 28 min', supervisor:['p-pa'] },
+  { id:'ag-trf', dept:'mkt', name:'Tráfego',        x:7.8,  y:0.7, status:'P1', running:false, desc:'Apoia Bryan. Monitora campanhas, briefings, alertas de gargalo.', models:['A'], invocations:31, success:88, lastRun:'há 1 h', supervisor:['p-pa','p-br'] },
+  { id:'ag-cal', dept:'mkt', name:'Cal. Editorial', x:11.2, y:0.7, status:'P1', running:false, desc:'Cadência · pauta dos 3 pilares (saída, autoridade, expansão).', models:['F'], invocations:24, success:100, lastRun:'há 4 h', supervisor:['p-pa'] },
+  { id:'ag-mtr', dept:'mkt', name:'Mentor',         x:14.6, y:0.7, status:'dorm', running:false, desc:'Roteiriza conteúdo educacional. Ativa pós-saída.', models:['E'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
+
+  /* COMERCIAL · 6 agentes empilhados no right strip (4×12) */
+  { id:'ag-prv', dept:'com', name:'Pré-venda',      x:0.7, y:0.5, status:'P1', running:true,  desc:'Qualifica leads · BANT/SPIN · agenda calls.', models:['A','B'], invocations:127, success:84, lastRun:'há 2 min', supervisor:['p-au'] },
+  { id:'ag-fec', dept:'com', name:'Fechamento',     x:0.7, y:2.4, status:'P2', running:false, desc:'Scripts high ticket EUA + BR · objeções · propostas.', models:['B'], invocations:14, success:71, lastRun:'há 3 h', supervisor:['p-au'] },
+  { id:'ag-crm', dept:'com', name:'CRM/Follow-up',  x:0.7, y:4.3, status:'P1', running:false, desc:'Pipeline · automações · tempo de resposta.', models:['A','B','C'], invocations:72, success:99, lastRun:'há 38 min', supervisor:['p-au'] },
+  { id:'ag-log', dept:'com', name:'Logística',      x:0.7, y:6.2, status:'P2', running:false, desc:'Hotel · traslado · jornada do paciente (B + D).', models:['B','D'], invocations:8, success:88, lastRun:'há 6 h', supervisor:['p-au'] },
+  { id:'ag-eua', dept:'com', name:'EUA',            x:0.7, y:8.1, status:'P2', running:false, desc:'Context expert: clínicas EUA, regulação, pacientes.', models:['A','D'], invocations:12, success:92, lastRun:'há 1 dia', supervisor:['p-au'] },
+  { id:'ag-bra', dept:'com', name:'Brasil',         x:0.7, y:10.0,status:'P2', running:false, desc:'Parceiros, providers, regulação CFM/CFO.', models:['B','D'], invocations:6, success:100, lastRun:'há 2 dias', supervisor:['p-au'] },
+
+  /* DEV & IA · 3 agentes no bottom strip (18×3) */
+  { id:'ag-cns', dept:'dev', name:'Construtor',     x:3.0,  y:0.7, status:'P1', running:false, desc:'Cria/itera os outros agentes (meta-agente).', models:['D'], invocations:9, success:89, lastRun:'há 5 h', supervisor:['p-ma'] },
+  { id:'ag-aut', dept:'dev', name:'Automação',      x:8.0,  y:0.7, status:'P1', running:true,  desc:'n8n · MCPs · integrações CRM · WhatsApp.', models:['A','D'], invocations:215, success:98, lastRun:'em execução', supervisor:['p-ma'] },
+  { id:'ag-dad', dept:'dev', name:'Dados',          x:13.0, y:0.7, status:'P2', running:false, desc:'Dashboards · KPIs por modelo · queries semanais.', models:['A','C','D'], invocations:38, success:95, lastRun:'há 1 h', supervisor:['p-ma'] },
+
+  /* BIBLIOTECA · 4 agentes empilhados no left strip (4×12) */
+  { id:'ag-cur', dept:'lib', name:'Curador',        x:0.7, y:0.6, status:'P1', running:false, desc:'Mantém workspace · dossiês · decisões atualizadas.', models:['C','E'], invocations:46, success:97, lastRun:'há 22 min', supervisor:['p-au'] },
+  { id:'ag-doc', dept:'lib', name:'Documentador',   x:0.7, y:3.2, status:'P1', running:false, desc:'Extrai playbooks da cabeça do Augusto. Urgente: Lumina.', models:['C'], invocations:23, success:90, lastRun:'há 2 h', supervisor:['p-au'] },
+  { id:'ag-fin', dept:'lib', name:'Financeiro',     x:0.7, y:5.8, status:'dorm', running:false, desc:'Caixa · comissões · projeções · pricing.', models:['A','B','C','D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-au'] },
+  { id:'ag-jur', dept:'lib', name:'Jurídico',       x:0.7, y:8.4, status:'dorm', running:false, desc:'Contratos · sinaliza quando precisa advogado humano.', models:['D'], invocations:0, success:0, lastRun:'nunca rodou', supervisor:['p-ma'] },
 ];
 
-const PROJETOS_BOARDS = [
-  { letter:'A', name:'Lumina · EUA',     status:'ativo',     statusColor:'#16a34a' },
-  { letter:'B', name:'protegido',        status:'cauteloso', statusColor:'#d97706' },
-  { letter:'C', name:'protegido',        status:'incubando', statusColor:'#9aa0a6' },
-  { letter:'D', name:'Aesthetica',       status:'ativo',     statusColor:'#16a34a' },
-  { letter:'E', name:'protegido',        status:'pós-saída', statusColor:'#9aa0a6' },
-  { letter:'F', name:'Marca pessoal',    status:'ativo',     statusColor:'#16a34a' },
+/* 6 projetos · cada um vira uma sala-projeto (prj-X). Times computados a partir de AGENTS/PEOPLE. */
+const PROJETOS = [
+  {
+    letter:'A', name:'Lumina · EUA', apelido:'Lumina',
+    status:'ativo', statusColor:'#16a34a', statusLabel:'Validado · com ressalvas',
+    note:'$2k USD fixos + 10%/proc',
+    revenue:'única receita real',
+    tasks:[
+      { title:'Documentar playbook',     state:'fazendo' },
+      { title:'Renegociar pré-saída',    state:'pendente' },
+      { title:'Campanha Q3',             state:'planejando' },
+    ],
+  },
+  {
+    letter:'B', name:'protegido',
+    status:'cauteloso', statusColor:'#d97706', statusLabel:'Piloto · 1 caso/2sem',
+    note:'20% por caso direcionado',
+    revenue:'pipeline lento',
+    tasks:[
+      { title:'Validar volume',          state:'fazendo' },
+      { title:'Script high-ticket BR',   state:'pendente' },
+    ],
+  },
+  {
+    letter:'C', name:'protegido',
+    status:'incubando', statusColor:'#9aa0a6', statusLabel:'Leads via Goiânia',
+    note:'sem receita ativa',
+    revenue:'incubando',
+    tasks:[
+      { title:'Curar dossiê C',          state:'fazendo' },
+      { title:'Definir oferta',          state:'planejando' },
+    ],
+  },
+  {
+    letter:'D', name:'Aesthetica',
+    status:'ativo', statusColor:'#16a34a', statusLabel:'Estratégia ativa · 2 fases',
+    note:'turismo médico · retainer + fees',
+    revenue:'em desenvolvimento',
+    tasks:[
+      { title:'Resolver Stark Law',      state:'crítica' },
+      { title:'Country Manager BR',      state:'fazendo' },
+      { title:'Logística pacientes',     state:'planejando' },
+    ],
+  },
+  {
+    letter:'E', name:'protegido',
+    status:'pós-saída', statusColor:'#9aa0a6', statusLabel:'Ativa pós-saída',
+    note:'futuro · educacional',
+    revenue:'sem receita',
+    tasks:[
+      { title:'Roteirizar conteúdo',     state:'pendente' },
+    ],
+  },
+  {
+    letter:'F', name:'Marca pessoal', apelido:'Marca',
+    status:'ativo', statusColor:'#16a34a', statusLabel:'Em desenvolvimento · 2 fases',
+    note:'pilar editorial · alimenta A/B/C/E',
+    revenue:'receita indireta',
+    tasks:[
+      { title:'Cadência semanal',        state:'fazendo' },
+      { title:'Pauta saída',             state:'fazendo' },
+      { title:'Repurpose vídeos Well',   state:'pendente' },
+    ],
+  },
 ];
 
+/* HUMANOS · cada um agora num lugar lógico:
+   sócios no HUB · executores/órbita/clientes nos PROJETOS onde atuam */
 const PEOPLE = [
-  { id:'p-au', dept:'dir', name:'Augusto Miranda', shortName:'Augusto', initials:'AU', kind:'nucleo', x:4.6, y:2.5, role:'CEO · cliente final de 5 das 6 áreas', desc:'Liderança estratégica · high-touch · operações internacionais · curadoria do conhecimento.', models:['A','B','C','D','E','F'], status:'online', channels:['WhatsApp · sócios','Slack QG','Email'], salary:null, supervisesAgents:['ag-ceo','ag-est','ag-aud','ag-prv','ag-fec','ag-crm','ag-cur','ag-doc','ag-fin','ag-log','ag-eua','ag-bra'], opts:{} },
-  { id:'p-pa', dept:'mkt', name:'Pablo Bianchi',   shortName:'Pablo',   initials:'PA', kind:'nucleo', x:4.6, y:1.4, role:'Diretor de Marca & Marketing · sócio potencial', desc:'Co-responsável Lumina · canal de leads pra Modelo C via Goiânia · direciona Antonio em A.', models:['A','C','F'], status:'online', channels:['WhatsApp · sócios','Slack QG'], salary:null, supervisesAgents:['ag-cnt','ag-bv','ag-trf','ag-cal','ag-est'], opts:{} },
-  { id:'p-at', dept:'mkt', name:'Antonio',  shortName:'Antonio',  initials:'AT', kind:'exec',   x:0.8, y:5.0, role:'Social Media · executor', desc:'Recebe pauta pré-aprovada. Augusto comanda em F; Pablo direciona em A. Não sabe do macro.', models:['A','F'], status:'online', channels:['WhatsApp'], salary:'R$ 1.000/mês', supervisesAgents:[], opts:{hairStyle:'short'} },
-  { id:'p-br', dept:'mkt', name:'Bryan',    shortName:'Bryan',    initials:'BR', kind:'exec',   x:2.2, y:5.0, role:'Gestor de tráfego · executor', desc:'Operação paid ads. Apoiado pelo agente Tráfego (cobre gap de proatividade).', models:['A'], status:'offline', channels:['WhatsApp'], salary:'R$ 1.500/mês', supervisesAgents:[], opts:{} },
-  { id:'p-we', dept:'mkt', name:'Well',     shortName:'Well',     initials:'WE', kind:'exec',   x:3.6, y:5.0, role:'Videomaker · executor + parceiro de network', desc:'Edição de vídeo (A + F). Origem do Modelo B (apresentou Cássio).', models:['A','B','F'], status:'busy', channels:['WhatsApp'], salary:'R$ 1.600 (8 vídeos)/mês', supervisesAgents:[], opts:{hairStyle:'short', glasses:true} },
-  { id:'p-an', dept:'mkt', name:'Andressa', shortName:'Andressa', initials:'AN', kind:'orbit',  x:5.0, y:5.0, role:'Atendimento Lumina + liderada interna', desc:'Caso especial — dupla função (interna + freelancer Lumina pelo Augusto).', models:['A'], status:'online', channels:['WhatsApp Business'], salary:'R$ 2.500/mês', supervisesAgents:[], opts:{hairStyle:'long'} },
-  { id:'p-ma', dept:'dev', name:'Matheus de Sousa',shortName:'Matheus', initials:'MA', kind:'nucleo', x:4.6, y:2.5, role:'Diretor de Tecnologia & IA · sócio potencial', desc:'Lidera Tec & IA · constrói os agentes · MCPs · plataforma D. Pouco contato com cliente.', models:['D'], status:'busy', channels:['Slack QG','GitHub'], salary:null, supervisesAgents:['ag-cns','ag-aut','ag-dad','ag-aud','ag-jur'], opts:{glasses:true} },
-  { id:'p-cy', dept:'prj', name:'Dra. Cynthia Lumina', shortName:'Cynthia', initials:'CY', kind:'client', x:0.6, y:3.6, role:'Cliente · Modelo A · clínica EUA', desc:'High-touch. Sócia do Dr. Rey. $2.000 USD fixos + 10% por procedimento.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{hairStyle:'long'} },
-  { id:'p-re', dept:'prj', name:'Dr. Rey', shortName:'Rey', initials:'RE', kind:'client', x:1.7, y:3.6, role:'Cliente · Modelo A · sócio da Cynthia', desc:'Relacionamento direto com Augusto via WhatsApp.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{} },
-  { id:'p-ca', dept:'prj', name:'Dr. Cássio', shortName:'Cássio', initials:'CA', kind:'client', x:5.4, y:3.6, role:'Cliente · Modelo B · clínica capilar BR', desc:'20% por caso direcionado. Origem: Well apresentou. Pipeline: 1 caso em 2 semanas.', models:['B'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true} },
-  { id:'p-th', dept:'prj', name:'Thomas · Aesthetica', shortName:'Thomas', initials:'TH', kind:'client', x:6.5, y:3.6, role:'Cliente · Modelo D · turismo médico', desc:'Único contato D · concentração de relacionamento. Sinalizou Stark Law / Anti-Kickback Florida.', models:['D'], status:'busy', channels:['Email','WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true, hairStyle:'short'} },
+  /* HUB · 3 sócios em volta da mesa redonda */
+  { id:'p-au', dept:'hub', name:'Augusto Miranda', shortName:'Augusto', initials:'AU', kind:'nucleo', x:1.5, y:2.5, role:'CEO · cliente final de 5 das 6 áreas', desc:'Liderança estratégica · high-touch · operações internacionais · curadoria do conhecimento.', models:['A','B','C','D','E','F'], status:'online', channels:['WhatsApp · sócios','Slack QG','Email'], salary:null, supervisesAgents:['ag-ceo','ag-est','ag-aud','ag-prv','ag-fec','ag-crm','ag-cur','ag-doc','ag-fin','ag-log','ag-eua','ag-bra'], opts:{} },
+  { id:'p-pa', dept:'hub', name:'Pablo Bianchi',   shortName:'Pablo',   initials:'PA', kind:'nucleo', x:4.5, y:2.5, role:'Diretor de Marca & Marketing · sócio potencial', desc:'Co-responsável Lumina · canal de leads pra Modelo C via Goiânia · direciona Antonio em A.', models:['A','C','F'], status:'online', channels:['WhatsApp · sócios','Slack QG'], salary:null, supervisesAgents:['ag-cnt','ag-bv','ag-trf','ag-cal','ag-est'], opts:{} },
+  { id:'p-ma', dept:'hub', name:'Matheus de Sousa',shortName:'Matheus', initials:'MA', kind:'nucleo', x:3.0, y:3.1, role:'Diretor de Tecnologia & IA · sócio potencial', desc:'Lidera Tec & IA · constrói os agentes · MCPs · plataforma D. Pouco contato com cliente.', models:['D'], status:'busy', channels:['Slack QG','GitHub'], salary:null, supervisesAgents:['ag-cns','ag-aut','ag-dad','ag-aud','ag-jur'], opts:{glasses:true} },
+
+  /* PROJETO A · Lumina · Andressa lead, 2 clientes, Bryan na retaguarda */
+  { id:'p-an', dept:'prj-A', name:'Andressa', shortName:'Andressa', initials:'AN', kind:'orbit',  x:1.0, y:2.7, role:'Atendimento Lumina + liderada interna', desc:'Caso especial — dupla função (interna + freelancer Lumina pelo Augusto).', models:['A'], status:'online', channels:['WhatsApp Business'], salary:'R$ 2.500/mês', supervisesAgents:[], opts:{hairStyle:'long'} },
+  { id:'p-cy', dept:'prj-A', name:'Dra. Cynthia Lumina', shortName:'Cynthia', initials:'CY', kind:'client', x:2.5, y:2.7, role:'Cliente · Modelo A · clínica EUA', desc:'High-touch. Sócia do Dr. Rey. $2.000 USD fixos + 10% por procedimento.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{hairStyle:'long'} },
+  { id:'p-re', dept:'prj-A', name:'Dr. Rey', shortName:'Rey', initials:'RE', kind:'client', x:4.0, y:2.7, role:'Cliente · Modelo A · sócio da Cynthia', desc:'Relacionamento direto com Augusto via WhatsApp.', models:['A'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{} },
+  { id:'p-br', dept:'prj-A', name:'Bryan',    shortName:'Bryan',    initials:'BR', kind:'exec',   x:4.5, y:1.4, role:'Gestor de tráfego · executor', desc:'Operação paid ads. Apoiado pelo agente Tráfego (cobre gap de proatividade).', models:['A'], status:'offline', channels:['WhatsApp'], salary:'R$ 1.500/mês', supervisesAgents:[], opts:{} },
+
+  /* PROJETO B · Cássio cliente + Well que originou o contato */
+  { id:'p-we', dept:'prj-B', name:'Well',     shortName:'Well',     initials:'WE', kind:'exec',   x:1.5, y:2.7, role:'Videomaker · executor + parceiro de network', desc:'Edição de vídeo (A + F). Origem do Modelo B (apresentou Cássio).', models:['A','B','F'], status:'busy', channels:['WhatsApp'], salary:'R$ 1.600 (8 vídeos)/mês', supervisesAgents:[], opts:{hairStyle:'short', glasses:true} },
+  { id:'p-ca', dept:'prj-B', name:'Dr. Cássio', shortName:'Cássio', initials:'CA', kind:'client', x:3.5, y:2.7, role:'Cliente · Modelo B · clínica capilar BR', desc:'20% por caso direcionado. Origem: Well apresentou. Pipeline: 1 caso em 2 semanas.', models:['B'], status:'offline', channels:['WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true} },
+
+  /* PROJETO D · Aesthetica · Thomas */
+  { id:'p-th', dept:'prj-D', name:'Thomas · Aesthetica', shortName:'Thomas', initials:'TH', kind:'client', x:3.0, y:2.7, role:'Cliente · Modelo D · turismo médico', desc:'Único contato D · concentração de relacionamento. Sinalizou Stark Law / Anti-Kickback Florida.', models:['D'], status:'busy', channels:['Email','WhatsApp'], salary:null, supervisesAgents:[], opts:{glasses:true, hairStyle:'short'} },
+
+  /* PROJETO F · Marca pessoal · Antonio executa social */
+  { id:'p-at', dept:'prj-F', name:'Antonio',  shortName:'Antonio',  initials:'AT', kind:'exec',   x:3.0, y:2.7, role:'Social Media · executor', desc:'Recebe pauta pré-aprovada. Augusto comanda em F; Pablo direciona em A. Não sabe do macro.', models:['A','F'], status:'online', channels:['WhatsApp'], salary:'R$ 1.000/mês', supervisesAgents:[], opts:{hairStyle:'short'} },
 ];
 
 defs();
@@ -664,10 +760,12 @@ const ROOM_BY_KEY = Object.fromEntries(ROOMS.map(r=>[r.key, r]));
 const PERSON_BY_ID = Object.fromEntries(PEOPLE.map(p=>[p.id, p]));
 const AGENT_BY_ID = Object.fromEntries(AGENTS.map(a=>[a.id, a]));
 
+/* ===== PISOS ===== */
 ROOMS.forEach(r => pisoSala(r.x, r.y, r.w, r.d, r.floor));
-tapete(8.5, 6.5, 7, 6, '#d8dff0');
-tapete(0.5, 7.5, 7, 3, '#f3d9c4');
+/* tapete embaixo da mesa do hub */
+tapete(11, 8, 4, 3, '#d8dff0');
 
+/* ===== PAREDES ===== */
 function drawRoomWalls(r, h){
   h = h || 1.4;
   const decors = r.wallDecor || [];
@@ -675,114 +773,152 @@ function drawRoomWalls(r, h){
   parede([r.x, r.y], [r.x, r.y + r.d], h, decors[1]);
 }
 ROOMS.forEach(r => drawRoomWalls(r, 1.4));
-parede([0, 6], [24, 6], 1.4);
-parede([24, 0], [24, 13], 1.4);
-parede([0, 13], [24, 13], 1.4);
+/* paredes leste/sul do hub (não cobertas pelo north/west) */
+parede([16, 7], [16, 11], 1.4);
+parede([10, 11], [16, 11], 1.4);
+/* perímetro externo leste e sul */
+parede([26, 0], [26, 18], 1.4);
+parede([0, 18], [26, 18], 1.4);
 
+/* ===== LABELS DE SALA ===== */
 ROOMS.filter(r=>r.label).forEach(r=>{
   enq((r.x+r.y)*0.001 + 0.0001, ()=>{
-    const c = iso(r.x + r.w/2, r.y + 0.45);
+    const c = iso(r.x + r.w/2, r.y + 0.4);
     const lbl = ELEM('text', {x:c[0], y:c[1]+4, class:'room-label'}, layers.labels);
     lbl.textContent = r.label;
     if (r.sub){
-      const c2 = iso(r.x + r.w/2, r.y + 0.95);
+      const c2 = iso(r.x + r.w/2, r.y + 0.85);
       const sub = ELEM('text', {x:c2[0], y:c2[1]+4, class:'room-sub'}, layers.labels);
       sub.textContent = r.sub;
     }
   });
 });
 
+/* ===== HUB ===== */
 (function(){
-  const r = ROOM_BY_KEY['mtg'];
-  const cx = r.x + r.w/2, cy = r.y + r.d/2 + 0.4;
-  mesaRedonda(cx, cy, 1.5, '#e5d8b0');
-  [[cx - 2.2, cy - 1.0], [cx + 1.6, cy - 1.0], [cx - 2.6, cy + 0.5], [cx + 2.0, cy + 0.5], [cx - 1.8, cy + 1.7], [cx + 1.2, cy + 1.7]].forEach(p => cadeira(p[0], p[1], '#1f2937'));
-  planta(r.x + 0.3, r.y + 0.4, 'palm');
-  planta(r.x + r.w - 1.4, r.y + 0.4, 'palm');
-  planta(r.x + 0.3, r.y + r.d - 1.3, 'small');
-  planta(r.x + r.w - 1.4, r.y + r.d - 1.3, 'small');
+  const r = ROOM_BY_KEY['hub'];
+  /* mesa redonda no centro do hub */
+  mesaRedonda(r.x + 3, r.y + 2.5, 1.1, '#e5d8b0');
+  /* 4 cadeiras estofadas em volta */
+  cadeira(r.x + 1.6, r.y + 1.6, '#1f2937');
+  cadeira(r.x + 3.6, r.y + 1.6, '#1f2937');
+  cadeira(r.x + 1.6, r.y + 3.0, '#1f2937');
+  cadeira(r.x + 3.6, r.y + 3.0, '#1f2937');
+  /* plantas de canto */
+  planta(r.x + 0.2, r.y + 3.2, 'small');
+  planta(r.x + r.w - 1.2, r.y + 3.2, 'small');
 })();
 
-(function(){
-  const r = ROOM_BY_KEY['lib'];
-  function estanteEste(gx, gy, len){
-    const z=1.2, w=0.4, d=len;
-    const top  = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx,gy+d,z)];
-    const front= [iso(gx,gy+d,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx,gy+d,0)];
-    const east = [iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx+w,gy+d,0),iso(gx+w,gy,0)];
-    enq(gx+gy+0.25, ()=>{
-      ELEM('polygon',{points: poly(east), fill:'#5d3f23'}, layers.furniture);
-      ELEM('polygon',{points: poly(front), fill:'#7d5938', stroke:'rgba(0,0,0,0.18)'}, layers.furniture);
-      ELEM('polygon',{points: poly(top), fill:'#8e6843', stroke:'rgba(0,0,0,0.2)'}, layers.furniture);
-      const colors = ['#185fa5','#dc2626','#16a34a','#7c2d12','#475569','#9d174d','#0e7490','#854d0e'];
-      const shelves = 3;
-      for (let s=0; s<shelves; s++){
-        const sz = z * (1 - (s+1)/(shelves+1));
-        for (let bi = 0; bi < d*4; bi++){
-          const by = gy + bi/(d*4) * d;
-          const bh = 0.18 + Math.random()*0.08;
-          const a=iso(gx, by, sz+bh), b=iso(gx, by+0.18, sz+bh);
-          const a2=iso(gx, by, sz), b2=iso(gx, by+0.18, sz);
-          ELEM('polygon',{points: poly([a,b,b2,a2]), fill: colors[(bi+s)%colors.length]}, layers.furniture);
-        }
-        const sa=iso(gx, gy, sz), sb=iso(gx+w, gy, sz);
-        const sc=iso(gx+w, gy+d, sz), sd=iso(gx, gy+d, sz);
-        ELEM('polygon',{points:poly([sa,sb,sc,sd]), fill:'#5d3f23', opacity:.7}, layers.furniture);
-      }
-    });
-  }
-  estanteEste(r.x + r.w - 0.4, r.y + 0.5, 5.5);
-  mesaRedonda(r.x + r.w - 2.2, r.y + r.d - 1.6, 0.8, '#d8c69a');
-  cadeira(r.x + r.w - 3.4, r.y + r.d - 2.4, '#3b3b39');
-  cadeira(r.x + r.w - 1.4, r.y + r.d - 2.4, '#3b3b39');
-  cadeira(r.x + r.w - 3.4, r.y + r.d - 0.8, '#3b3b39');
-  planta(r.x + 0.2, r.y + r.d - 1.4, 'ficus');
-})();
-
-(function(){
-  const r = ROOM_BY_KEY['prj'];
-  function quadroProjeto(gx, gy, model){
-    const h = 1.0, w = 0.95;
-    const a = iso(gx, gy, h+0.4);
-    const b = iso(gx + w, gy, h+0.4);
-    const c = iso(gx + w, gy, h-0.05);
-    const d = iso(gx, gy, h-0.05);
-    enq((gx+gy)*0.5 - 0.05, ()=>{
-      ELEM('polygon',{points: poly([a,b,c,d]), fill:'#fff', stroke:'#3b2f24','stroke-width':1.6}, layers.wallDecor);
-      const ah = iso(gx, gy, h+0.4);
-      const bh = iso(gx + w, gy, h+0.4);
-      const ch = iso(gx + w, gy, h+0.32);
-      const dh = iso(gx, gy, h+0.32);
-      ELEM('polygon',{points: poly([ah,bh,ch,dh]), fill: model.statusColor}, layers.wallDecor);
-      const cx = (a[0]+b[0])/2, cy = (a[1]+c[1])/2;
-      const t = ELEM('text',{x:cx, y:cy+4, 'text-anchor':'middle', 'font-size':22, 'font-weight':800, fill:'#1a1a18', 'letter-spacing':'.04em'}, layers.wallDecor);
-      t.textContent = model.letter;
-      const sub = ELEM('text',{x:cx, y:c[1]-6, 'text-anchor':'middle', 'font-size':7, 'font-weight':600, fill:'#5a5a55'}, layers.wallDecor);
-      sub.textContent = model.name.toUpperCase();
-      const stat = ELEM('text',{x:cx, y:c[1]+2, 'text-anchor':'middle', 'font-size':6.5, 'font-weight':700, fill: model.statusColor, 'letter-spacing':'.06em'}, layers.wallDecor);
-      stat.textContent = model.status.toUpperCase();
-    });
-  }
-  const wallWidth = r.w - 0.4;
-  const slot = wallWidth / 6;
-  PROJETOS_BOARDS.forEach((m, i) => {
-    quadroProjeto(r.x + 0.2 + i * slot + (slot - 0.95)/2, r.y + 0.02, m);
+/* ===== POSTER DO PROJETO (parede norte de cada sala-projeto) ===== */
+function drawProjectPoster(r, project){
+  const gx = r.x + r.w/2 - 0.55;  /* centralizado, 1.1 wide */
+  const gy = r.y + 0.02;
+  const h = 1.0, w = 1.1;
+  const a = iso(gx, gy, h+0.42);
+  const b = iso(gx + w, gy, h+0.42);
+  const c = iso(gx + w, gy, h-0.05);
+  const d = iso(gx, gy, h-0.05);
+  enq((gx+gy)*0.5 - 0.05, ()=>{
+    /* moldura */
+    ELEM('polygon',{points: poly([a,b,c,d]), fill:'#fff', stroke:'#3b2f24','stroke-width':1.8}, layers.wallDecor);
+    /* faixa de status no topo */
+    const ah = iso(gx, gy, h+0.42);
+    const bh = iso(gx + w, gy, h+0.42);
+    const ch = iso(gx + w, gy, h+0.34);
+    const dh = iso(gx, gy, h+0.34);
+    ELEM('polygon',{points: poly([ah,bh,ch,dh]), fill: project.statusColor}, layers.wallDecor);
+    const cx = (a[0]+b[0])/2, cy = (a[1]+c[1])/2;
+    /* letra grande */
+    const t = ELEM('text',{x:cx, y:cy+6, 'text-anchor':'middle', 'font-size':28, 'font-weight':800, fill:'#1a1a18', 'letter-spacing':'.04em'}, layers.wallDecor);
+    t.textContent = project.letter;
+    /* nome do projeto */
+    const sub = ELEM('text',{x:cx, y:c[1]-7, 'text-anchor':'middle', 'font-size':7.5, 'font-weight':600, fill:'#5a5a55', 'letter-spacing':'.02em'}, layers.wallDecor);
+    sub.textContent = (project.apelido || project.name).toUpperCase();
+    /* status */
+    const stat = ELEM('text',{x:cx, y:c[1]+2, 'text-anchor':'middle', 'font-size':6.5, 'font-weight':700, fill: project.statusColor, 'letter-spacing':'.08em'}, layers.wallDecor);
+    stat.textContent = project.status.toUpperCase();
   });
-  sofa(r.x + 0.6, r.y + 2.0, 6.5, '#7c8aa6');
-  mesaCafe(r.x + 1.4, r.y + 1.2, '#6b4b25');
-  mesaCafe(r.x + 5.4, r.y + 1.2, '#6b4b25');
-  planta(r.x + 0.2, r.y + 5.4, 'palm');
-  planta(r.x + r.w - 1.2, r.y + 5.4, 'ficus');
-  planta(r.x + r.w - 1.2, r.y + 1.2, 'small');
-})();
+}
 
+/* ===== KANBAN MINI · 3 post-its no chão da sala-projeto ===== */
+function drawKanbanMini(r, project){
+  const tasks = (project.tasks || []).slice(0, 3);
+  const colors = { 'fazendo':'#fff7ce', 'pendente':'#fce7e7', 'planejando':'#dceffc', 'crítica':'#fcdcdc' };
+  const startX = r.x + 0.4;
+  const y = r.y + 1.0;
+  tasks.forEach((t, i)=>{
+    const gx = startX + i*0.75;
+    const gy = y;
+    const z = 0.05;
+    const w = 0.65, d = 0.55;
+    const top = [iso(gx,gy,z),iso(gx+w,gy,z),iso(gx+w,gy+d,z),iso(gx,gy+d,z)];
+    enq(gx+gy+0.05, ()=>{
+      const fill = colors[t.state] || '#fff8e0';
+      ELEM('polygon',{points: poly(top), fill, stroke:'rgba(0,0,0,0.15)','stroke-width':0.6, transform:`rotate(${i%2===0 ? -2 : 3} ${(top[0][0]+top[2][0])/2} ${(top[0][1]+top[2][1])/2})`}, layers.props);
+      /* linhinhas simulando texto */
+      const c1 = iso(gx+0.08, gy+0.15, z), c2 = iso(gx+w-0.08, gy+0.15, z);
+      ELEM('line',{x1:c1[0],y1:c1[1],x2:c2[0],y2:c2[1], stroke:'rgba(0,0,0,0.3)','stroke-width':0.6}, layers.props);
+      const c3 = iso(gx+0.08, gy+0.32, z), c4 = iso(gx+w-0.20, gy+0.32, z);
+      ELEM('line',{x1:c3[0],y1:c3[1],x2:c4[0],y2:c4[1], stroke:'rgba(0,0,0,0.3)','stroke-width':0.6}, layers.props);
+    });
+  });
+}
+
+/* ===== AGENT CHIP · pequeno avatar circular do agente IA na sala-projeto ===== */
+const DEPT_COLOR = { 'mkt':'#d97706', 'com':'#16a34a', 'dev':'#185fa5', 'lib':'#7c2d12', 'hub':'#534ab7' };
+function agentChip(gx, gy, agent){
+  const screen = agent.status==='P1' ? '#16a34a' : agent.status==='P2' ? '#d97706' : '#9aa0a6';
+  const dc = DEPT_COLOR[agent.dept] || '#475569';
+  enq(gx+gy+0.5, ()=>{
+    const c = iso(gx, gy, 0);
+    /* sombra */
+    ELEM('ellipse',{cx:c[0],cy:c[1]+2,rx:8,ry:2.5,fill:'rgba(0,0,0,0.18)'}, layers.people);
+    const g = ELEM('g', {class:'obj interactive agent', 'data-kind':'agent', 'data-id':agent.id, 'data-models':(agent.models||[]).join(',')}, layers.people);
+    /* círculo do dept */
+    ELEM('circle',{cx:c[0], cy:c[1]-3, r:8, fill:dc, stroke:'#fff','stroke-width':1.2}, g);
+    /* iniciais do agente */
+    const t = ELEM('text',{x:c[0], y:c[1]-1, 'text-anchor':'middle', 'font-size':7, 'font-weight':700, fill:'#fff'}, g);
+    const initials = agent.name.split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase();
+    t.textContent = initials;
+    /* dot de status */
+    const dot = ELEM('circle',{cx:c[0]+6, cy:c[1]-9, r:2.6, fill:screen, stroke:'#fff','stroke-width':1.2}, g);
+    if (agent.running){
+      dot.innerHTML = '<animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>';
+    }
+    g.addEventListener('click', function(){ selectEntity({type:'agent', id: agent.id}); });
+  });
+}
+
+/* ===== SALAS-PROJETO ===== */
+ROOMS.filter(r => r.type === 'project').forEach(r => {
+  const project = PROJETOS.find(p => p.letter === r.letter);
+  if (!project) return;
+  /* poster + kanban + plantas */
+  drawProjectPoster(r, project);
+  drawKanbanMini(r, project);
+  /* agentes deployados (chips em grade no chão) */
+  const deployed = AGENTS.filter(a => (a.models||[]).includes(r.letter));
+  /* arruma chips numa grade compacta no canto direito-inferior */
+  const cols = 3;
+  deployed.forEach((a, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    agentChip(r.x + 4.0 + col*0.7, r.y + 1.2 + row*0.55, a);
+  });
+  /* planta no canto */
+  planta(r.x + r.w - 0.9, r.y + r.d - 1.1, 'small');
+});
+
+/* ===== AGENTES nas oficinas (workstations completas) + HUB (compactas) ===== */
 AGENTS.forEach(a => {
   const room = ROOM_BY_KEY[a.dept];
+  if (!room) return;
   agente(room.x + a.x, room.y + a.y, a);
 });
 
+/* ===== PESSOAS ===== */
 PEOPLE.forEach(p => {
   const room = ROOM_BY_KEY[p.dept];
+  if (!room) return;
   pessoa(room.x + p.x, room.y + p.y, p.initials, p.kind, {
     id: p.id, models: p.models, shortName: p.shortName, status: p.status,
     glasses: p.opts && p.opts.glasses, hairStyle: p.opts && p.opts.hairStyle,
@@ -791,6 +927,27 @@ PEOPLE.forEach(p => {
 });
 
 flush();
+
+/* ===== LINHAS HUB & SPOKE (sutis por padrão, lente "Conexões" intensifica) ===== */
+function drawHubSpokeLines(){
+  layers.conn.innerHTML = '';
+  AGENTS.forEach(a => {
+    if (a.dept === 'hub') return;  /* hub agents têm broadcast; pular */
+    const room = ROOM_BY_KEY[a.dept];
+    if (!room) return;
+    const fromPt = iso(room.x + a.x + 0.8, room.y + a.y + 0.5, 0.95);
+    (a.models || []).forEach(letter => {
+      const prj = ROOM_BY_KEY['prj-' + letter];
+      if (!prj) return;
+      const toPt = iso(prj.x + prj.w/2, prj.y + prj.d/2, 0.4);
+      const cx = (fromPt[0]+toPt[0])/2;
+      const cy = Math.min(fromPt[1], toPt[1]) - 30;
+      const path = 'M '+fromPt[0]+' '+fromPt[1]+' Q '+cx+' '+cy+' '+toPt[0]+' '+toPt[1];
+      ELEM('path',{d:path, class:'conn ambient', style:'opacity:.18'}, layers.conn);
+    });
+  });
+}
+drawHubSpokeLines();
 
 let currentSel = null;
 
