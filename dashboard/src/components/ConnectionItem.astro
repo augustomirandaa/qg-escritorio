@@ -1,0 +1,117 @@
+---
+import type { Conexao } from "../data/types";
+import { TIPO_CONEXAO_LABEL } from "../data/types";
+import { pessoaById } from "../data/pessoas";
+
+interface Props { conexao: Conexao; }
+const { conexao } = Astro.props;
+
+const meta = TIPO_CONEXAO_LABEL[conexao.tipo];
+const pessoa = conexao.responsavelId ? pessoaById(conexao.responsavelId) : undefined;
+
+const statusClass = {
+  "conectado": "s-success",
+  "pendente": "s-warning",
+  "planejado": "s-neutral",
+  "desconectado": "s-danger",
+}[conexao.status];
+
+const statusLabel = {
+  "conectado": "conectado",
+  "pendente": "pendente",
+  "planejado": "planejado",
+  "desconectado": "desconectado",
+}[conexao.status];
+---
+
+<div class:list={["conn", `conn-${conexao.status}`]}>
+  <div class:list={["conn-badge", `c-${conexao.tipo}`]}>{meta.sigla}</div>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-baseline justify-between gap-2 flex-wrap">
+      <div class="flex items-baseline gap-1.5">
+        <span class="text-[13px] font-medium leading-tight">{conexao.nome}</span>
+        <span class="text-[10px] text-faint">{meta.nome}</span>
+      </div>
+      <span class={`status-badge ${statusClass}`}>{statusLabel}</span>
+    </div>
+    <div class="text-[11px] text-soft mt-1 leading-snug">{conexao.descricao}</div>
+    {pessoa && (
+      <div class="mt-2 flex items-center gap-1.5">
+        <span class="text-[10px] text-faint">resp.:</span>
+        <span class="resp-pill">
+          <span class:list={["av-mini", `t-${pessoa.tipo}`]}>{pessoa.iniciais}</span>
+          <span class="text-[11px] text-soft">{pessoa.nome}</span>
+        </span>
+      </div>
+    )}
+  </div>
+</div>
+
+<style>
+  .conn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+  }
+  .conn-conectado { border-left-color: var(--color-success-text); }
+  .conn-pendente { border-left-color: var(--color-warning-text); }
+  .conn-planejado { border-left-color: var(--color-faint); border-left-style: dashed; }
+  .conn-desconectado { border-left-color: var(--color-danger-text); opacity: 0.6; }
+
+  .conn-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+  }
+  .conn-badge.c-whatsapp { background: var(--color-con-whatsapp); }
+  .conn-badge.c-instagram { background: var(--color-con-instagram); }
+  .conn-badge.c-meta-ads { background: var(--color-con-meta-ads); }
+  .conn-badge.c-google-ads { background: var(--color-con-google-ads); }
+  .conn-badge.c-email { background: var(--color-con-email); }
+  .conn-badge.c-drive { background: var(--color-con-drive); }
+  .conn-badge.c-notion { background: var(--color-con-notion); }
+  .conn-badge.c-crm { background: var(--color-con-crm); }
+  .conn-badge.c-calendar { background: var(--color-con-calendar); }
+  .conn-badge.c-mcp { background: var(--color-con-mcp); font-size: 8px; }
+  .conn-badge.c-planilha { background: var(--color-con-planilha); }
+  .conn-badge.c-site { background: var(--color-con-site); }
+  .conn-badge.c-outra { background: var(--color-con-outra); }
+
+  .resp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px 2px 2px;
+    background: var(--color-surface);
+    border-radius: 999px;
+    border: 0.5px solid var(--color-line);
+  }
+  .av-mini {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .av-mini.t-socio { background: var(--color-avatar-socio); }
+  .av-mini.t-hibrida { background: var(--color-avatar-hibrida); }
+  .av-mini.t-executor { background: var(--color-avatar-executor); }
+  .av-mini.t-network { background: var(--color-avatar-network); }
+  .av-mini.t-cliente { background: var(--color-avatar-cliente); }
+</style>

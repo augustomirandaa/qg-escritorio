@@ -1,0 +1,495 @@
+---
+import Base from "../../layouts/Base.astro";
+import StatusBadge from "../../components/StatusBadge.astro";
+import AgentCard from "../../components/AgentCard.astro";
+import HumanCard from "../../components/HumanCard.astro";
+import TaskItem from "../../components/TaskItem.astro";
+import ConnectionItem from "../../components/ConnectionItem.astro";
+import { PROJETOS, PROJETO_IDS } from "../../data/projetos";
+import type { ProjetoId } from "../../data/types";
+
+export function getStaticPaths() {
+  return (["A","B","C","D","E","F"] as ProjetoId[]).map((id) => ({ params: { id } }));
+}
+
+const { id } = Astro.params as { id: ProjetoId };
+const p = PROJETOS[id];
+const hasDormente = p.agentes.some((a) => a.dormente);
+
+const tarefasPendentes = p.tarefas.filter((t) => t.status === "pendente");
+const tarefasProgresso = p.tarefas.filter((t) => t.status === "em-progresso");
+const tarefasFeitas = p.tarefas.filter((t) => t.status === "feita");
+
+const conexoes = p.conexoes ?? [];
+const conexoesConectadas = conexoes.filter((c) => c.status === "conectado").length;
+const conexoesPendentes = conexoes.filter((c) => c.status === "pendente").length;
+const conexoesPlanejadas = conexoes.filter((c) => c.status === "planejado").length;
+
+const gruposEnvolvidos = [
+  { titulo: "Clientes", tipos: ["cliente"] as const },
+  { titulo: "Líderes", tipos: ["socio"] as const },
+  { titulo: "Time", tipos: ["executor", "hibrida", "network"] as const },
+]
+  .map((g) => ({
+    ...g,
+    pessoas: p.humanos.filter((h) => (g.tipos as readonly string[]).includes(h.tipo)),
+  }))
+  .filter((g) => g.pessoas.length > 0);
+---
+
+<Base title={p.titulo} subtitle={p.meta}>
+  <nav class="flex items-center gap-1.5 mb-4 flex-wrap">
+    {PROJETO_IDS.map((pid) => (
+      <a
+        href={`/projetos/${pid}`}
+        class:list={[
+          "text-[12px] px-3 py-1.5 rounded-md transition-colors border-[0.5px]",
+          pid === id
+            ? "bg-info-bg text-info-text border-info-border font-medium"
+            : "bg-surface text-soft border-line hover:bg-muted hover:text-base"
+        ]}
+      >
+        <span class="font-medium mr-1.5">{pid}</span>
+        <span class="text-[11px]">{PROJETOS[pid].apelido}</span>
+      </a>
+    ))}
+  </nav>
+
+  {p.secreto && (
+    <article class="panel secret-prompt" data-secret-prompt={p.id}>
+      <div class="flex items-center gap-2 mb-2 text-warning-text">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span class="text-[12px] font-medium uppercase tracking-wider">Projeto protegido</span>
+      </div>
+      <h2 class="text-[17px] font-medium leading-tight m-0 mb-1.5">{p.titulo}</h2>
+      <p class="text-[13px] text-soft m-0 mb-4 leading-relaxed">
+        Esse projeto contém informações sensíveis. Digite a senha pra acessar o conteúdo.
+      </p>
+      <form class="secret-form flex items-center gap-2" data-secret-form={p.id} onsubmit="return false">
+        <input
+          type="password"
+          class="secret-input"
+          placeholder="senha"
+          data-secret-input={p.id}
+          autocomplete="off"
+          autofocus
+        />
+        <button type="submit" class="secret-submit">Entrar</button>
+      </form>
+      <div class="secret-error mt-2.5 text-[12px] text-danger-text" data-secret-error={p.id} hidden>
+        Senha incorreta · tenta de novo.
+      </div>
+      <p class="text-[11px] text-faint mt-5 m-0 leading-snug">
+        Aviso honesto: senha client-side é UX, não criptografia. Quando a plataforma virar viva (Fase 2), proteção real vem via backend + auth.
+      </p>
+    </article>
+  )}
+
+  <article class="panel secret-content" data-secret-content={p.secreto ? p.id : ""}>
+    <div class="flex items-start justify-between gap-3.5 mb-1.5">
+      <div>
+        <div class="text-[17px] font-medium leading-tight">{p.titulo}</div>
+        <div class="text-[12px] text-soft mt-1.5">{p.meta}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        {p.relatorioPath && (
+          <a href={p.relatorioPath} class="text-[11px] px-2.5 py-1.5 rounded-md bg-info-bg text-info-text border-[0.5px] border-info-border hover:bg-info-border hover:text-surface transition-colors whitespace-nowrap">
+            Ver relatório →
+          </a>
+        )}
+        <StatusBadge status={p.status} statusClass={p.statusClass} />
+      </div>
+    </div>
+
+    <div class="tip mt-3">{p.tip}</div>
+
+    {p.briefing && (
+      <div class="briefing mt-5">
+        <div class="briefing-tabs" role="tablist">
+          <button type="button" class="brief-pill" data-key="contexto" aria-controls="brief-contexto">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <span>Contexto</span>
+          </button>
+          <button type="button" class="brief-pill" data-key="objetivo" aria-controls="brief-objetivo">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="5"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+            <span>Objetivo</span>
+          </button>
+          <button type="button" class="brief-pill" data-key="momento" aria-controls="brief-momento">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <polyline points="12 7 12 12 15.5 14"/>
+            </svg>
+            <span>Momento</span>
+          </button>
+        </div>
+        <div class="briefing-panels">
+          <div class="brief-panel" id="brief-contexto" data-key="contexto" role="tabpanel" hidden>
+            <div class="brief-panel-label">Contexto</div>
+            <p class="brief-panel-text">{p.briefing.contexto}</p>
+          </div>
+          <div class="brief-panel" id="brief-objetivo" data-key="objetivo" role="tabpanel" hidden>
+            <div class="brief-panel-label">Objetivo</div>
+            <p class="brief-panel-text">{p.briefing.objetivo}</p>
+          </div>
+          <div class="brief-panel" id="brief-momento" data-key="momento" role="tabpanel" hidden>
+            <div class="brief-panel-label">Momento</div>
+            <p class="brief-panel-text">{p.briefing.momento}</p>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <h3 class="section-h mt-6 mb-2.5">Envolvidos</h3>
+    <div class="envolvidos">
+      {gruposEnvolvidos.map((g) => (
+        <div class="envolvidos-grupo">
+          <div class="envolvidos-sub">{g.titulo}</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {g.pessoas.map((h) => <HumanCard pessoa={h} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {conexoes.length > 0 && (
+      <>
+        <div class="flex items-baseline justify-between mt-6 mb-2.5 gap-3 flex-wrap">
+          <h3 class="section-h">Conexões · canais e ferramentas</h3>
+          <div class="flex items-center gap-3 text-[11px] text-soft">
+            {conexoesConectadas > 0 && <span><strong class="font-medium text-success-text">{conexoesConectadas}</strong> conectada{conexoesConectadas !== 1 ? "s" : ""}</span>}
+            {conexoesPendentes > 0 && <span><strong class="font-medium text-warning-text">{conexoesPendentes}</strong> pendente{conexoesPendentes !== 1 ? "s" : ""}</span>}
+            {conexoesPlanejadas > 0 && <span><strong class="font-medium text-faint">{conexoesPlanejadas}</strong> planejada{conexoesPlanejadas !== 1 ? "s" : ""}</span>}
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {conexoes.map((c) => <ConnectionItem conexao={c} />)}
+        </div>
+      </>
+    )}
+
+    <h3 class="section-h mt-6 mb-2.5">
+      Agentes {hasDormente ? "· ativos + dormentes" : "ativos · prioridade 1"}
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      {p.agentes.map((a) => <AgentCard agente={a} />)}
+    </div>
+
+    <div class="mt-6 pt-4 border-t border-line">
+      <div class="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+        <h4 class="text-[15px] font-medium">Tarefas</h4>
+        <div class="flex items-center gap-3 text-[11px] text-soft">
+          {tarefasPendentes.length > 0 && <span><strong class="font-medium text-base">{tarefasPendentes.length}</strong> a fazer</span>}
+          {tarefasProgresso.length > 0 && <span><strong class="font-medium text-info-text">{tarefasProgresso.length}</strong> em progresso</span>}
+          {tarefasFeitas.length > 0 && <span><strong class="font-medium text-success-text">{tarefasFeitas.length}</strong> feita{tarefasFeitas.length !== 1 ? "s" : ""}</span>}
+        </div>
+      </div>
+
+      {tarefasPendentes.length > 0 && (
+        <div class="mb-4">
+          <div class="task-group-h">
+            <span class="task-group-dot s-pendente"></span>
+            A fazer · {tarefasPendentes.length}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {tarefasPendentes.map((t) => <TaskItem tarefa={t} />)}
+          </div>
+        </div>
+      )}
+
+      {tarefasProgresso.length > 0 && (
+        <div class="mb-4">
+          <div class="task-group-h">
+            <span class="task-group-dot s-progresso"></span>
+            Em progresso · {tarefasProgresso.length}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {tarefasProgresso.map((t) => <TaskItem tarefa={t} />)}
+          </div>
+        </div>
+      )}
+
+      {tarefasFeitas.length > 0 && (
+        <div class="mb-4">
+          <div class="task-group-h">
+            <span class="task-group-dot s-feita"></span>
+            Feitas · {tarefasFeitas.length}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {tarefasFeitas.map((t) => <TaskItem tarefa={t} />)}
+          </div>
+        </div>
+      )}
+
+      <details class="mt-4 task-helper">
+        <summary class="task-helper-summary">
+          <span>+ Adicionar uma tarefa</span>
+          <span class="text-[10px] text-faint">como editar</span>
+        </summary>
+        <div class="task-helper-body">
+          <p class="text-[12px] text-soft m-0 mb-2.5 leading-snug">
+            Em modo brochure, tarefas vivem em código. Pra adicionar uma nova ao projeto <strong>{p.id} · {p.apelido}</strong>, abra <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">src/data/projetos.ts</code>, ache o bloco do projeto, e adicione um item ao array <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">tarefas</code>:
+          </p>
+          <pre class="task-helper-snippet"><code>{`{
+  titulo: "Descreva a tarefa em uma frase",
+  responsavelId: "augusto",  // ou pablo, matheus, antonio, well, bryan, andressa
+  status: "pendente",         // ou "em-progresso", "feita"
+  porQue: "Por que essa tarefa importa — qual problema resolve",
+},`}</code></pre>
+          <p class="text-[11px] text-faint m-0 mt-2 leading-snug">
+            Quando a plataforma virar viva (Fase 1), criação passa a ser via interface. Por enquanto, edição via código é a fonte de verdade.
+          </p>
+        </div>
+      </details>
+    </div>
+
+    <div class="mt-5 pt-4 border-t border-line">
+      <h4 class="section-h mb-2.5">Riscos críticos</h4>
+      <ul class="m-0 p-0 list-none">
+        {p.riscos.map((r) => (
+          <li class="text-[13px] leading-relaxed mb-1.5 pl-3.5 relative before:content-[''] before:absolute before:left-0 before:top-[9px] before:w-1 before:h-1 before:rounded-full before:bg-[#E24B4A]">{r}</li>
+        ))}
+      </ul>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .briefing-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .brief-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px 7px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-soft);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .brief-pill:hover {
+    background: var(--color-muted);
+    color: var(--color-base);
+  }
+  .brief-pill.active {
+    background: var(--color-info-bg);
+    border-color: var(--color-info-border);
+    color: var(--color-info-text);
+    font-weight: 500;
+  }
+  .brief-pill svg {
+    flex-shrink: 0;
+  }
+
+  .briefing-panels {
+    margin-top: 0;
+  }
+  .brief-panel {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border-top: 2px solid var(--color-info-border);
+    animation: brief-fade 0.15s ease-out;
+  }
+  .brief-panel-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+    color: var(--color-info-text);
+    margin-bottom: 6px;
+  }
+  .brief-panel-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-base);
+    margin: 0;
+  }
+  @keyframes brief-fade {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<script>
+  // Briefing tabs toggle
+  const briefing = document.querySelector(".briefing");
+  if (briefing) {
+    const buttons = briefing.querySelectorAll<HTMLButtonElement>(".brief-pill");
+    const panels = briefing.querySelectorAll<HTMLElement>(".brief-panel");
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.key;
+        const wasActive = btn.classList.contains("active");
+        buttons.forEach((b) => b.classList.remove("active"));
+        panels.forEach((p) => (p.hidden = true));
+        if (!wasActive && key) {
+          btn.classList.add("active");
+          const panel = briefing.querySelector<HTMLElement>(`.brief-panel[data-key="${key}"]`);
+          if (panel) panel.hidden = false;
+        }
+      });
+    });
+  }
+
+  // Secret project gate (UX-only, NOT real security — see comment in projetos.ts)
+  const SECRET_PASSWORD = "123";
+  const content = document.querySelector<HTMLElement>("[data-secret-content]");
+  const secretId = content?.dataset.secretContent;
+  if (content && secretId) {
+    const prompt = document.querySelector<HTMLElement>(`[data-secret-prompt="${secretId}"]`);
+    const form = document.querySelector<HTMLFormElement>(`[data-secret-form="${secretId}"]`);
+    const input = document.querySelector<HTMLInputElement>(`[data-secret-input="${secretId}"]`);
+    const error = document.querySelector<HTMLElement>(`[data-secret-error="${secretId}"]`);
+
+    const unlock = () => {
+      content.classList.add("unlocked");
+      prompt?.classList.add("unlocked");
+    };
+
+    if (sessionStorage.getItem(`secret-project-${secretId}`) === "1") {
+      unlock();
+    }
+
+    form?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (input?.value === SECRET_PASSWORD) {
+        sessionStorage.setItem(`secret-project-${secretId}`, "1");
+        if (error) error.hidden = true;
+        unlock();
+      } else {
+        if (error) error.hidden = false;
+        input?.select();
+      }
+    });
+  }
+</script>
+
+<style>
+  .secret-content[data-secret-content=""] { display: block; }
+  .secret-content:not([data-secret-content=""]) { display: none; }
+  .secret-content.unlocked { display: block; }
+  .secret-prompt.unlocked { display: none; }
+
+  .secret-input {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--color-base);
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 240px;
+  }
+  .secret-input:focus {
+    border-color: var(--color-info-border);
+  }
+  .secret-submit {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 0.5px solid var(--color-info-border);
+    background: var(--color-info-bg);
+    color: var(--color-info-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .secret-submit:hover {
+    background: var(--color-info-border);
+    color: var(--color-surface);
+  }
+
+  .envolvidos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .envolvidos-sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--color-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  .task-group-h {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .task-group-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .task-group-dot.s-pendente { background: var(--color-faint); }
+  .task-group-dot.s-progresso { background: var(--color-info-border); }
+  .task-group-dot.s-feita { background: var(--color-success-text); }
+
+  .task-helper {
+    background: var(--color-muted);
+    border: 0.5px solid var(--color-line);
+    border-radius: 8px;
+    padding: 0;
+  }
+  .task-helper-summary {
+    cursor: pointer;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--color-soft);
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .task-helper-summary::-webkit-details-marker { display: none; }
+  .task-helper-summary:hover { color: var(--color-base); }
+  .task-helper[open] .task-helper-summary {
+    color: var(--color-base);
+    border-bottom: 0.5px solid var(--color-line);
+  }
+  .task-helper-body {
+    padding: 12px 14px 14px;
+  }
+  .task-helper-snippet {
+    background: var(--color-base);
+    color: #d8d6cf;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .task-helper-snippet code { background: transparent; padding: 0; }
+</style>

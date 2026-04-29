@@ -1,0 +1,24 @@
+---
+const path = Astro.url.pathname;
+const isHome = path === "/" || path === "";
+const isProjetos = path.startsWith("/projetos");
+const isPessoas = path.startsWith("/pessoas");
+const isAgentes = path.startsWith("/agentes");
+const isMatriz = path.startsWith("/matriz");
+const isRelatorios = path.startsWith("/relatorios");
+
+const item = (active: boolean) =>
+  `text-[12px] px-3 py-1.5 rounded-md transition-colors ` +
+  (active
+    ? "bg-info-bg text-info-text font-medium"
+    : "text-soft hover:bg-muted hover:text-base");
+---
+
+<nav class="flex items-center gap-1 mb-4 -mx-1 overflow-x-auto">
+  <a href="/" class={item(isHome)}>Visão geral</a>
+  <a href="/projetos/A" class={item(isProjetos)}>Projetos</a>
+  <a href="/relatorios" class={item(isRelatorios)}>Relatórios</a>
+  <a href="/pessoas" class={item(isPessoas)}>Pessoas</a>
+  <a href="/agentes" class={item(isAgentes)}>Agentes</a>
+  <a href="/matriz" class={item(isMatriz)}>Matriz</a>
+</nav>

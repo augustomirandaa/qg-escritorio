@@ -1,0 +1,49 @@
+---
+import type { AgenteRef } from "../data/types";
+import { AREA_NOMES_CURTO } from "../data/types";
+
+interface Props { agente: AgenteRef; }
+const { agente } = Astro.props;
+---
+
+<div
+  class:list={[
+    "agent",
+    `area-${agente.area}`,
+    agente.dormente && "dormant",
+  ]}
+>
+  <div class="flex items-baseline justify-between gap-2">
+    <div class="text-[13px] font-medium leading-tight">
+      {agente.nome}
+      {agente.dormente && <span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-warning-bg text-warning-text font-medium align-middle">dormente</span>}
+    </div>
+    <span class:list={["text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap", `pill-${agente.area}`]}>
+      {AREA_NOMES_CURTO[agente.area]}
+    </span>
+  </div>
+  <div class="text-[11px] text-soft mt-1.5 leading-snug">{agente.funcao}</div>
+</div>
+
+<style>
+  .agent {
+    padding: 10px 12px 12px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+  }
+  .agent.dormant { opacity: 0.62; border-left-style: dashed; }
+  .agent.area-diretoria { border-left-color: var(--color-area-diretoria); }
+  .agent.area-marca { border-left-color: var(--color-area-marca); }
+  .agent.area-comercial { border-left-color: var(--color-area-comercial); }
+  .agent.area-ops { border-left-color: var(--color-area-ops); }
+  .agent.area-tec { border-left-color: var(--color-area-tec); }
+  .agent.area-conhecimento { border-left-color: var(--color-area-conhecimento); }
+
+  .pill-diretoria { background: var(--color-pill-diretoria-bg); color: var(--color-pill-diretoria-text); }
+  .pill-marca { background: var(--color-pill-marca-bg); color: var(--color-pill-marca-text); }
+  .pill-comercial { background: var(--color-pill-comercial-bg); color: var(--color-pill-comercial-text); }
+  .pill-ops { background: var(--color-pill-ops-bg); color: var(--color-pill-ops-text); }
+  .pill-tec { background: var(--color-pill-tec-bg); color: var(--color-pill-tec-text); }
+  .pill-conhecimento { background: var(--color-pill-conhecimento-bg); color: var(--color-pill-conhecimento-text); }
+</style>

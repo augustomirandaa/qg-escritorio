@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #efece4;
+  --color-surface: #ffffff;
+  --color-muted: #f7f5ef;
+
+  --color-base: #2c2c2a;
+  --color-soft: #5f5e5a;
+  --color-faint: #888780;
+
+  --color-line: rgba(0, 0, 0, 0.10);
+  --color-line-strong: rgba(0, 0, 0, 0.18);
+
+  --color-info-bg: #e6f1fb;
+  --color-info-text: #0c447c;
+  --color-info-border: #185fa5;
+
+  --color-success-bg: #e1f5ee;
+  --color-success-text: #085041;
+
+  --color-warning-bg: #faeeda;
+  --color-warning-text: #854f0b;
+
+  --color-danger-bg: #fcebeb;
+  --color-danger-text: #a32d2d;
+
+  --color-neutral-bg: #f1efe8;
+  --color-neutral-text: #444441;
+
+  --color-area-diretoria: #534ab7;
+  --color-area-marca: #ba7517;
+  --color-area-comercial: #993556;
+  --color-area-ops: #1d9e75;
+  --color-area-tec: #185fa5;
+  --color-area-conhecimento: #5f5e5a;
+
+  --color-avatar-socio: #185fa5;
+  --color-avatar-hibrida: #d4537e;
+  --color-avatar-executor: #ba7517;
+  --color-avatar-network: #534ab7;
+  --color-avatar-cliente: #2c7873;
+
+  --color-con-whatsapp: #25d366;
+  --color-con-instagram: #e1306c;
+  --color-con-meta-ads: #1877f2;
+  --color-con-google-ads: #ea4335;
+  --color-con-email: #5f5e5a;
+  --color-con-drive: #4285f4;
+  --color-con-notion: #2c2c2a;
+  --color-con-crm: #534ab7;
+  --color-con-calendar: #1d9e75;
+  --color-con-mcp: #ba7517;
+  --color-con-planilha: #0f9d58;
+  --color-con-site: #6e7e8a;
+  --color-con-outra: #888780;
+
+  --color-pill-diretoria-bg: #eeedfe;
+  --color-pill-diretoria-text: #3c3489;
+  --color-pill-marca-bg: #faeeda;
+  --color-pill-marca-text: #854f0b;
+  --color-pill-comercial-bg: #fbeaf0;
+  --color-pill-comercial-text: #72243e;
+  --color-pill-ops-bg: #e1f5ee;
+  --color-pill-ops-text: #085041;
+  --color-pill-tec-bg: #e6f1fb;
+  --color-pill-tec-text: #0c447c;
+  --color-pill-conhecimento-bg: #f1efe8;
+  --color-pill-conhecimento-text: #444441;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+@layer base {
+  html, body {
+    background: var(--color-canvas);
+    color: var(--color-base);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+@layer components {
+  .panel {
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-line);
+    border-radius: 12px;
+    padding: 22px;
+  }
+
+  .tip {
+    font-size: 12px;
+    color: var(--color-soft);
+    line-height: 1.55;
+    padding: 10px 14px;
+    background: var(--color-muted);
+    border-radius: 8px;
+  }
+
+  .section-h {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .status-badge.s-success { background: var(--color-success-bg); color: var(--color-success-text); }
+  .status-badge.s-warning { background: var(--color-warning-bg); color: var(--color-warning-text); }
+  .status-badge.s-info    { background: var(--color-info-bg); color: var(--color-info-text); }
+  .status-badge.s-neutral { background: var(--color-neutral-bg); color: var(--color-neutral-text); }
+  .status-badge.s-danger  { background: var(--color-danger-bg); color: var(--color-danger-text); }
+}

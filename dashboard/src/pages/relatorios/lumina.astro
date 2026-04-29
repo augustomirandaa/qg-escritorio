@@ -1,0 +1,398 @@
+---
+import Base from "../../layouts/Base.astro";
+import { LUMINA_2026, MES_NOME, calcularDerivadas, delta } from "../../data/lumina-relatorio";
+
+const meses = LUMINA_2026;
+const ultimo = meses[meses.length - 1];
+const anterior = meses.length >= 2 ? meses[meses.length - 2] : null;
+
+const dUlt = calcularDerivadas(ultimo);
+const dAnt = anterior ? calcularDerivadas(anterior) : null;
+
+const fmtUSD = (v: number) =>
+  "$" + v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtPct = (v: number) =>
+  (v * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+const fmtNum = (v: number) =>
+  v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+
+// KPIs do último mês com comparativo MoM
+const kpis = [
+  {
+    label: "Investimento em ads",
+    valor: fmtUSD(ultimo.investimento),
+    delta: anterior ? delta(ultimo.investimento, anterior.investimento) : null,
+    deltaInverso: true, // gastar menos é melhor (com mesma performance)
+  },
+  {
+    label: "Leads gerados",
+    valor: fmtNum(ultimo.leads),
+    delta: anterior ? delta(ultimo.leads, anterior.leads) : null,
+  },
+  {
+    label: "Total de consultas",
+    valor: fmtNum(dUlt.totalConsultas),
+    sub: `${ultimo.consultasOnline} online · ${ultimo.consultasPresenciais} presenciais`,
+    delta: anterior && dAnt ? delta(dUlt.totalConsultas, dAnt.totalConsultas) : null,
+  },
+  {
+    label: "Fechamentos",
+    valor: fmtNum(ultimo.fechamentos),
+    delta: anterior ? delta(ultimo.fechamentos, anterior.fechamentos) : null,
+  },
+  {
+    label: "Faturamento",
+    valor: fmtUSD(ultimo.faturamento),
+    delta: anterior ? delta(ultimo.faturamento, anterior.faturamento) : null,
+  },
+  {
+    label: "ROAS",
+    valor: dUlt.roas.toFixed(1) + "x",
+    sub: "faturamento ÷ investimento",
+    delta: anterior && dAnt ? delta(dUlt.roas, dAnt.roas) : null,
+  },
+];
+
+// função pra gerar barras proporcionais
+const max = (key: keyof typeof meses[0]) =>
+  Math.max(...meses.map((m) => m[key] as number));
+
+const investimentoMax = max("investimento");
+const leadsMax = max("leads");
+const fatMax = max("faturamento");
+
+// totais agregados (Q1 + Abr · período coberto)
+const totais = meses.reduce(
+  (acc, m) => ({
+    inv: acc.inv + m.investimento,
+    leads: acc.leads + m.leads,
+    consultas: acc.consultas + m.consultasOnline + m.consultasPresenciais,
+    fechamentos: acc.fechamentos + m.fechamentos,
+    fat: acc.fat + m.faturamento,
+  }),
+  { inv: 0, leads: 0, consultas: 0, fechamentos: 0, fat: 0 }
+);
+const totalRoas = totais.inv > 0 ? totais.fat / totais.inv : 0;
+const totalCPL = totais.leads > 0 ? totais.inv / totais.leads : 0;
+const totalTicket = totais.fechamentos > 0 ? totais.fat / totais.fechamentos : 0;
+
+const periodoLabel = `${MES_NOME[meses[0].mes]} – ${MES_NOME[ultimo.mes]} ${ultimo.ano}`;
+---
+
+<Base
+  title="Lumina Dental Studio · Relatório"
+  subtitle={`${MES_NOME[ultimo.mes]} ${ultimo.ano} · com série histórica desde ${MES_NOME[meses[0].mes]}`}
+  versao="dados manuais · atualização mensal"
+>
+  <header class="mb-6">
+    <div class="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+      <h2 class="text-[18px] font-medium m-0">Resumo de {MES_NOME[ultimo.mes]}</h2>
+      <div class="flex items-center gap-3 text-[11px] text-faint">
+        <a href="https://www.instagram.com/luminadentalstudio_" target="_blank" rel="noopener" class="hover:text-base">@luminadentalstudio_</a>
+        <span class="w-1 h-1 rounded-full bg-faint"></span>
+        <span>Período: {periodoLabel}</span>
+      </div>
+    </div>
+    {anterior && (
+      <p class="text-[12px] text-soft m-0">Comparativos vs <strong class="text-base font-medium">{MES_NOME[anterior.mes]}</strong>.</p>
+    )}
+  </header>
+
+  <section class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-7">
+    {kpis.map((k) => {
+      const d = k.delta;
+      let arrow = "";
+      let cls = "text-faint";
+      if (d) {
+        const positive = d.pct > 0.01;
+        const negative = d.pct < -0.01;
+        const good = k.deltaInverso ? negative : positive;
+        const bad = k.deltaInverso ? positive : negative;
+        if (good) { arrow = "↑"; cls = "text-success-text"; }
+        else if (bad) { arrow = "↓"; cls = "text-danger-text"; }
+        else { arrow = "→"; cls = "text-faint"; }
+      }
+      return (
+        <div class="kpi panel">
+          <div class="text-[11px] text-soft mb-1">{k.label}</div>
+          <div class="text-[24px] font-medium leading-none">{k.valor}</div>
+          {k.sub && <div class="text-[10px] text-faint mt-1">{k.sub}</div>}
+          {d && (
+            <div class={`text-[11px] mt-2.5 ${cls}`}>
+              {arrow} {fmtPct(Math.abs(d.pct))} vs mês anterior
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </section>
+
+  <section class="mb-7">
+    <h3 class="text-[15px] font-medium mb-3">Série mensal</h3>
+    <div class="panel overflow-x-auto">
+      <table class="serie">
+        <thead>
+          <tr>
+            <th class="left">Métrica</th>
+            {meses.map((m) => <th>{MES_NOME[m.mes].slice(0,3)}</th>)}
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="left">Investimento em ads</td>
+            {meses.map((m) => <td>{fmtUSD(m.investimento)}</td>)}
+            <td class="strong">{fmtUSD(totais.inv)}</td>
+          </tr>
+          <tr>
+            <td class="left">Leads gerados</td>
+            {meses.map((m) => <td>{fmtNum(m.leads)}</td>)}
+            <td class="strong">{fmtNum(totais.leads)}</td>
+          </tr>
+          <tr>
+            <td class="left">Custo por lead</td>
+            {meses.map((m) => <td>{fmtUSD(m.custoPorLead)}</td>)}
+            <td class="strong">{fmtUSD(totalCPL)}</td>
+          </tr>
+          <tr>
+            <td class="left">Consultas online</td>
+            {meses.map((m) => <td>{fmtNum(m.consultasOnline)}</td>)}
+            <td class="strong">{fmtNum(meses.reduce((a,m) => a+m.consultasOnline, 0))}</td>
+          </tr>
+          <tr>
+            <td class="left">Consultas presenciais</td>
+            {meses.map((m) => <td>{fmtNum(m.consultasPresenciais)}</td>)}
+            <td class="strong">{fmtNum(meses.reduce((a,m) => a+m.consultasPresenciais, 0))}</td>
+          </tr>
+          <tr>
+            <td class="left">Fechamentos</td>
+            {meses.map((m) => <td>{fmtNum(m.fechamentos)}</td>)}
+            <td class="strong">{fmtNum(totais.fechamentos)}</td>
+          </tr>
+          <tr>
+            <td class="left">Faturamento</td>
+            {meses.map((m) => <td>{fmtUSD(m.faturamento)}</td>)}
+            <td class="strong">{fmtUSD(totais.fat)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mb-7">
+    <h3 class="text-[15px] font-medium mb-3">Tendências</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-2">Investimento em ads (USD)</div>
+        <div class="bars">
+          {meses.map((m) => (
+            <div class="bar-row">
+              <div class="bar-label">{MES_NOME[m.mes].slice(0,3)}</div>
+              <div class="bar-track">
+                <div class="bar-fill bar-inv" style={`width: ${(m.investimento / investimentoMax * 100).toFixed(0)}%`}></div>
+              </div>
+              <div class="bar-value">{fmtUSD(m.investimento)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-2">Leads gerados</div>
+        <div class="bars">
+          {meses.map((m) => (
+            <div class="bar-row">
+              <div class="bar-label">{MES_NOME[m.mes].slice(0,3)}</div>
+              <div class="bar-track">
+                <div class="bar-fill bar-leads" style={`width: ${(m.leads / leadsMax * 100).toFixed(0)}%`}></div>
+              </div>
+              <div class="bar-value">{fmtNum(m.leads)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-2">Faturamento (USD)</div>
+        <div class="bars">
+          {meses.map((m) => (
+            <div class="bar-row">
+              <div class="bar-label">{MES_NOME[m.mes].slice(0,3)}</div>
+              <div class="bar-track">
+                <div class="bar-fill bar-fat" style={`width: ${(m.faturamento / fatMax * 100).toFixed(0)}%`}></div>
+              </div>
+              <div class="bar-value">{fmtUSD(m.faturamento)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-7">
+    <h3 class="text-[15px] font-medium mb-3">Funil & métricas derivadas · {MES_NOME[ultimo.mes]}</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Lead → Consulta</div>
+        <div class="text-[20px] font-medium">{fmtPct(dUlt.taxaLeadConsulta)}</div>
+        <div class="text-[10px] text-faint mt-1">{dUlt.totalConsultas} de {ultimo.leads}</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Consulta → Fechamento</div>
+        <div class="text-[20px] font-medium">{dUlt.totalConsultas > 0 ? fmtPct(dUlt.taxaConsultaFechamento) : "—"}</div>
+        <div class="text-[10px] text-faint mt-1">{ultimo.fechamentos} de {dUlt.totalConsultas}</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Lead → Fechamento</div>
+        <div class="text-[20px] font-medium">{fmtPct(dUlt.taxaLeadFechamento)}</div>
+        <div class="text-[10px] text-faint mt-1">funil completo</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Ticket médio (período)</div>
+        <div class="text-[20px] font-medium">{fmtUSD(totalTicket)}</div>
+        <div class="text-[10px] text-faint mt-1">{fmtUSD(totais.fat)} ÷ {totais.fechamentos} vendas</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-7">
+    <h3 class="text-[15px] font-medium mb-3">Leituras · {MES_NOME[ultimo.mes]}</h3>
+    <div class="panel">
+      <ul class="leituras">
+        <li><strong>Consultas explodiram:</strong> {dAnt ? `${dAnt.totalConsultas} → ${dUlt.totalConsultas} (${fmtPct((dUlt.totalConsultas - dAnt.totalConsultas) / Math.max(dAnt.totalConsultas, 1))})` : `${dUlt.totalConsultas} consultas`}. Primeira vez no ano com consultas online aparecendo no funil ({ultimo.consultasOnline}).</li>
+        <li><strong>Faturamento recuperou:</strong> {anterior ? `${fmtUSD(anterior.faturamento)} → ${fmtUSD(ultimo.faturamento)}` : fmtUSD(ultimo.faturamento)}. Mas com 1 fechamento de ticket maior, não com volume.</li>
+        <li><strong>Leads caíram:</strong> {anterior ? `${anterior.leads} → ${ultimo.leads} (${fmtPct((ultimo.leads - anterior.leads) / anterior.leads)})` : `${ultimo.leads} leads`}, mesmo investindo 15% menos. CPL subindo levemente — sinal de saturação ou de criativos esgotando.</li>
+        <li><strong>Funil ainda gargala em fechamento:</strong> consultas saíram de {dAnt?.totalConsultas ?? 0} pra {dUlt.totalConsultas}, mas fechamentos seguem em 1/mês. Investigar onde a consulta perde — script de venda? Preço? Follow-up?</li>
+        <li><strong>ROAS:</strong> {dUlt.roas.toFixed(1)}x no mês ({fmtUSD(ultimo.faturamento)} de faturamento por {fmtUSD(ultimo.investimento)} investido). Acumulado do período: {totalRoas.toFixed(1)}x.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="mb-7">
+    <h3 class="text-[15px] font-medium mb-3">Período acumulado · {periodoLabel}</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Investimento total</div>
+        <div class="text-[20px] font-medium">{fmtUSD(totais.inv)}</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Leads totais</div>
+        <div class="text-[20px] font-medium">{fmtNum(totais.leads)}</div>
+        <div class="text-[10px] text-faint mt-1">CPL médio: {fmtUSD(totalCPL)}</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">Faturamento total</div>
+        <div class="text-[20px] font-medium">{fmtUSD(totais.fat)}</div>
+        <div class="text-[10px] text-faint mt-1">{totais.fechamentos} fechamentos · ticket médio {fmtUSD(totalTicket)}</div>
+      </div>
+      <div class="panel">
+        <div class="text-[11px] text-soft mb-1">ROAS acumulado</div>
+        <div class="text-[20px] font-medium">{totalRoas.toFixed(1)}x</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-[11px] text-soft pt-4 border-t border-line">
+    <p class="m-0">
+      <strong class="text-base font-medium">Sobre os dados.</strong> Snapshot manual com dados do <code class="bg-muted px-1.5 py-0.5 rounded text-[10px]">CONTROLE LUMINA DENTAL.xlsx</code>.
+      Quando o MCP de Meta Ads + Instagram entrar (Fase 2), esses números viram automáticos. Por enquanto, você atualiza
+      <code class="bg-muted px-1.5 py-0.5 rounded text-[10px]">src/data/lumina-relatorio.ts</code> mensalmente.
+      Ver projeto completo em <a href="/projetos/A" class="text-info-text hover:underline">A · Lumina</a>.
+    </p>
+  </footer>
+</Base>
+
+<style>
+  .kpi {
+    padding: 16px 18px;
+  }
+
+  .serie {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .serie th, .serie td {
+    padding: 8px 10px;
+    text-align: right;
+    border-bottom: 0.5px solid var(--color-line);
+    white-space: nowrap;
+  }
+  .serie th.left, .serie td.left {
+    text-align: left;
+    color: var(--color-soft);
+  }
+  .serie th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--color-faint);
+    font-weight: 500;
+  }
+  .serie tbody tr:last-child td { border-bottom: none; }
+  .serie td.strong {
+    font-weight: 500;
+    color: var(--color-base);
+    background: var(--color-muted);
+  }
+
+  .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 70px;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .bar-label {
+    color: var(--color-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .bar-track {
+    height: 8px;
+    background: var(--color-canvas);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+  .bar-fill.bar-inv { background: var(--color-info-border); }
+  .bar-fill.bar-leads { background: var(--color-area-marca); }
+  .bar-fill.bar-fat { background: var(--color-success-text); }
+  .bar-value {
+    text-align: right;
+    color: var(--color-base);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .leituras {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  .leituras li {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    padding-left: 14px;
+    position: relative;
+  }
+  .leituras li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-info-border);
+  }
+  .leituras li:last-child { margin-bottom: 0; }
+</style>

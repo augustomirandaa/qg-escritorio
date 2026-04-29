@@ -35,9 +35,11 @@ Nada. Repo limpo.
 
 - ✅ Repo `qg-escritorio` criado no GitHub (privado · github.com/augustomirandaa/qg-escritorio)
 - ✅ Pablo (`pablobianchids@gmail.com`) e Matheus (`Matheusdesousa07@gmail.com`) precisam ser adicionados como collaborators (Augusto faz)
-- ✅ Estrutura de pastas: `docs/`, `infra/`, `agents/`, `mcps/`, `scripts/`
+- ✅ Estrutura de pastas: `docs/`, `infra/`, `agents/`, `mcps/`, `scripts/`, `dashboard/`
 - ✅ Documentação base: README, ARCHITECTURE, HANDOFF, STATE
 - ✅ Infra templates: `bootstrap.sh`, `docker-compose.yml`, `Caddyfile`, `.env.example`
+- ✅ **Dashboard brochure (`dashboard/`)** — Astro + TS + Tailwind v4. Páginas: visão geral, projetos A-F (com briefing tabs, envolvidos incluindo clientes, conexões, agentes, tarefas com responsável + porQue + status, riscos), pessoas (núcleo/executores/órbita/clientes), agentes (21 por área), matriz, **relatórios** (`/relatorios/lumina` com KPIs, série mensal, tendências, funil, leituras). Roda local com `cd dashboard && npm run dev` em `http://localhost:4321`. Manual (atualiza-se via commit). Migra pra "vivo" quando Fase 1 da plataforma estiver de pé.
+- ✅ **Relatório Lumina mensal** (`dashboard/src/data/lumina-relatorio.ts` + `pages/relatorios/lumina.astro`) — dados Fev-Abr 2026 importados de `CONTROLE LUMINA DENTAL.xlsx`. Augusto atualiza manualmente todo mês até MCP de Meta Ads + Instagram entrar.
 
 ---
 

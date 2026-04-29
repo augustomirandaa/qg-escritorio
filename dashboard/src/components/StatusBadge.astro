@@ -1,0 +1,6 @@
+---
+import type { StatusClass } from "../data/types";
+interface Props { status: string; statusClass: StatusClass; }
+const { status, statusClass } = Astro.props;
+---
+<span class={`status-badge s-${statusClass}`}>{status}</span>

@@ -1,0 +1,34 @@
+---
+import type { PessoaRef } from "../data/types";
+
+interface Props { pessoa: PessoaRef; }
+const { pessoa } = Astro.props;
+---
+
+<div class="flex items-center gap-2.5 px-2.5 py-2 bg-muted rounded-md">
+  <div class:list={["av", `t-${pessoa.tipo}`]}>{pessoa.iniciais}</div>
+  <div class="flex-1 min-w-0">
+    <div class="text-[13px] font-medium leading-tight truncate">{pessoa.nome}</div>
+    <div class="text-[11px] text-soft leading-snug mt-0.5">{pessoa.papel}</div>
+  </div>
+</div>
+
+<style>
+  .av {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .av.t-socio { background: var(--color-avatar-socio); }
+  .av.t-hibrida { background: var(--color-avatar-hibrida); }
+  .av.t-executor { background: var(--color-avatar-executor); }
+  .av.t-network { background: var(--color-avatar-network); }
+  .av.t-cliente { background: var(--color-avatar-cliente); }
+</style>

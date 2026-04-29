@@ -50,6 +50,8 @@ logs/
 *.sqlite
 *.db
 data/
+!dashboard/src/data/
+!dashboard/src/data/**
 storage/
 
 # Docker volumes

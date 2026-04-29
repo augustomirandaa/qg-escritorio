@@ -1,0 +1,83 @@
+---
+import Base from "../layouts/Base.astro";
+import StatusBadge from "../components/StatusBadge.astro";
+import { PROJETOS, PROJETO_IDS } from "../data/projetos";
+import { TOTAL_AGENTES, ATIVOS_FASE_0 } from "../data/agentes";
+import { NUCLEO, EXECUTORES } from "../data/pessoas";
+
+const stats = [
+  { v: PROJETO_IDS.length, l: "modelos no portfólio" },
+  { v: TOTAL_AGENTES, l: "agentes mapeados" },
+  { v: `${NUCLEO.length} + ${EXECUTORES.length}`, l: "núcleo + executores" },
+  { v: ATIVOS_FASE_0, l: "agentes ativos · prioridade 1" },
+];
+---
+
+<Base
+  title="QG · Centro de operações"
+  subtitle="Quem opera o quê em cada modelo · humanos + agentes"
+>
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
+    {stats.map((s) => (
+      <div class="bg-muted px-3.5 py-3 rounded-md">
+        <div class="text-[22px] font-medium leading-none">{s.v}</div>
+        <div class="text-[11px] text-soft mt-1 leading-snug">{s.l}</div>
+      </div>
+    ))}
+  </section>
+
+  <section class="mb-2">
+    <h2 class="section-h mb-3">Os 6 modelos do portfólio</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {PROJETO_IDS.map((id) => {
+        const p = PROJETOS[id];
+        return (
+          <a
+            href={`/projetos/${id}`}
+            class="block panel hover:border-line-strong transition-colors"
+          >
+            <div class="flex items-baseline justify-between gap-3 mb-1.5">
+              <div class="flex items-baseline gap-2.5">
+                <span class="text-[20px] font-medium leading-none">{id}</span>
+                <span class="text-[14px] font-medium">{p.apelido}</span>
+                {p.secreto && (
+                  <span class="inline-flex items-center gap-1 text-[10px] text-warning-text bg-warning-bg px-1.5 py-0.5 rounded" title="Projeto protegido por senha">
+                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    protegido
+                  </span>
+                )}
+              </div>
+              <StatusBadge status={p.status} statusClass={p.statusClass} />
+            </div>
+            <p class="text-[12px] text-soft leading-snug m-0">{p.meta}</p>
+            <div class="flex items-center gap-3 mt-3 text-[11px] text-faint">
+              <span>{p.humanos.length} pessoas</span>
+              <span class="w-1 h-1 rounded-full bg-faint"></span>
+              <span>{p.agentes.length} agentes</span>
+              <span class="w-1 h-1 rounded-full bg-faint"></span>
+              <span>{p.tarefas.length} tarefas</span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <a href="/pessoas" class="panel hover:border-line-strong transition-colors">
+      <div class="text-[13px] font-medium mb-1">Pessoas</div>
+      <div class="text-[12px] text-soft leading-snug">Núcleo macro, executores limitados, network bidirecional · {NUCLEO.length + EXECUTORES.length + 1} no total.</div>
+    </a>
+    <a href="/agentes" class="panel hover:border-line-strong transition-colors">
+      <div class="text-[13px] font-medium mb-1">Agentes</div>
+      <div class="text-[12px] text-soft leading-snug">{TOTAL_AGENTES} agentes IA agrupados por área · ativos hoje vs dormentes até fase futura.</div>
+    </a>
+    <a href="/matriz" class="panel hover:border-line-strong transition-colors">
+      <div class="text-[13px] font-medium mb-1">Matriz</div>
+      <div class="text-[12px] text-soft leading-snug">Visão completa: 21 agentes × 6 modelos · onde cada agente toca, onde dorme.</div>
+    </a>
+  </section>
+</Base>

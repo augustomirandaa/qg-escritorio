@@ -1,0 +1,39 @@
+---
+import Base from "../../layouts/Base.astro";
+import { LUMINA_2026, MES_NOME } from "../../data/lumina-relatorio";
+
+const lumLast = LUMINA_2026[LUMINA_2026.length - 1];
+---
+
+<Base
+  title="Relatórios"
+  subtitle="Snapshots mensais por modelo · pra apresentar pros clientes e revisar internamente"
+>
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <a href="/relatorios/lumina" class="panel hover:border-line-strong transition-colors">
+      <div class="flex items-baseline justify-between gap-3 mb-1.5">
+        <div class="flex items-baseline gap-2.5">
+          <span class="text-[20px] font-medium leading-none">A</span>
+          <span class="text-[14px] font-medium">Lumina Dental Studio</span>
+        </div>
+        <span class="status-badge s-success">3 meses · 2026</span>
+      </div>
+      <p class="text-[12px] text-soft leading-snug m-0">Relatório de marketing & performance · investimento, leads, conversão e faturamento mensais.</p>
+      <div class="flex items-center gap-3 mt-3 text-[11px] text-faint">
+        <span>Último: {MES_NOME[lumLast.mes]} {lumLast.ano}</span>
+        <span class="w-1 h-1 rounded-full bg-faint"></span>
+        <span>{lumLast.leads} leads · ${lumLast.faturamento.toLocaleString("pt-BR")}</span>
+      </div>
+    </a>
+
+    <div class="panel opacity-60">
+      <div class="flex items-baseline justify-between gap-3 mb-1.5">
+        <div class="flex items-baseline gap-2.5">
+          <span class="text-[20px] font-medium leading-none text-faint">—</span>
+          <span class="text-[14px] font-medium text-soft">Outros relatórios</span>
+        </div>
+      </div>
+      <p class="text-[12px] text-soft leading-snug m-0">Modelos B (Direcionamento), C (Consultoria), D (Aesthetica) — relatórios chegam quando os modelos tiverem volume mensurável.</p>
+    </div>
+  </section>
+</Base>
