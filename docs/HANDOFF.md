@@ -117,11 +117,40 @@ Exemplo: adicionar MCP WhatsApp.
 
 ### Branches
 
-- `main` · estado de produção · só merge via PR (depois de configurar branch protection)
-- `feat/xxx` · novas features (branches efêmeros)
-- `fix/xxx` · correções
+**Estrutura de branches do projeto:**
 
-Pra MVP inicial, OK trabalhar direto em `main` até a primeira deploy.
+- `main` · estado integrado · o que vai pra VPS quando deploy estiver de pé · merges chegam via tag (release) ou via PR
+- `augusto/work` · branch contínua do Cowork na máquina do Augusto · recebe push direto a cada "sobe pro git" · sem tags, sem alerta pro Matheus
+- `matheus/work` · branch contínua do Claude Code na máquina do Matheus · recebe push direto a cada parada de trabalho dele
+- `feat/xxx` / `fix/xxx` · branches efêmeros pra features pontuais · merge em main quando prontas
+
+**Fluxo Augusto (Cowork):**
+
+1. **"sobe pro git" / "salva":** commit em `augusto/work` + push origin · não toca em main
+2. **"cria versão" / "manda pro Matheus":** rebase `augusto/work` em cima de `main` atualizado · merge em main · tag (vMAJOR.MINOR.PATCH) · push main + tag · realinha `augusto/work`
+
+**Fluxo Matheus (Claude Code):**
+
+1. Trabalha em `matheus/work` · push contínuo
+2. Quando feature está estável (schema, auth, deploy etc.), rebase em `main` atualizado · merge · tag se aplicável
+
+**Regra única que evita conflitos:**
+
+- Antes de QUALQUER push: `git pull --rebase origin <branch-atual>` + checar `STATE.md` em "Em progresso"
+- Antes de QUALQUER merge em `main`: rebase em cima de `main` atualizado, resolve conflitos local, depois merge
+
+**Divisão de território (soft, não enforced — se precisar invadir, sinaliza no STATE.md):**
+
+| Augusto (Cowork edita) | Matheus (Claude Code edita) | Compartilhado |
+|---|---|---|
+| `dashboard/src/data/*.ts` | `infra/*` | `docs/STATE.md` (alta freq.) |
+| `dashboard/src/pages/*.astro` (UI) | `dashboard/src/lib/db/*` | `docs/ARCHITECTURE.md` (rara) |
+| `dashboard/src/components/*.astro` | `dashboard/src/lib/auth/*` | `dashboard/astro.config.mjs` |
+| `dashboard/src/styles/*.css` | `dashboard/src/pages/api/*` | `dashboard/package.json` |
+| Conteúdo dos relatórios | Schema SQL · migrações | |
+| Adicionar pessoas, projetos, tarefas | Deploy, secrets, env | |
+
+**Quando precisar invadir território do outro** (ex.: Matheus migrando dados pra DB toca arquivos do Augusto): faz na branch própria, sinaliza em `STATE.md > ## Em progresso` antes de começar, e merge em main quando pronto.
 
 ### Commits
 
