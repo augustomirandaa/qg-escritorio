@@ -40,6 +40,31 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
   title="Tarefas · todas"
   subtitle="Visão consolidada das tarefas dos 6 modelos"
 >
+  {totalAtrasadas > 0 && (
+    <div class="alerta-atrasadas mb-5">
+      <div class="flex items-start gap-3">
+        <div class="alerta-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <div class="text-[14px] font-medium text-danger-text leading-tight">
+            {totalAtrasadas} {totalAtrasadas === 1 ? "tarefa atrasada precisa de atenção" : "tarefas atrasadas precisam de atenção"}
+          </div>
+          <div class="text-[12px] text-danger-text/80 mt-1 leading-snug">
+            Filtra abaixo "só atrasadas" pra ver só elas, ou rola até a seção "A fazer".
+          </div>
+        </div>
+        <button type="button" class="alerta-btn" data-filtro-quick="so-atrasadas">
+          Filtrar só atrasadas
+        </button>
+      </div>
+    </div>
+  )}
+
   <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
     <div class="bg-muted px-3.5 py-3 rounded-md">
       <div class="text-[20px] font-medium leading-none">{todasTarefas.length}</div>
@@ -147,6 +172,34 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
 </Base>
 
 <style>
+  .alerta-atrasadas {
+    background: var(--color-danger-bg);
+    border: 0.5px solid var(--color-danger-text);
+    border-left: 3px solid var(--color-danger-text);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .alerta-icon {
+    color: var(--color-danger-text);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .alerta-btn {
+    background: var(--color-danger-text);
+    color: #fff;
+    border: 0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+    align-self: flex-start;
+  }
+  .alerta-btn:hover { opacity: 0.85; }
+
   .filtros-wrap {
     display: flex;
     align-items: center;
@@ -230,7 +283,8 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       responsavel: string;
       projeto: string;
     };
-    const padrao: Filtros = { esconderFeitas: false, soAtrasadas: false, responsavel: "", projeto: "" };
+    // Default na view global: esconder feitas (reduz ruído ao chegar)
+    const padrao: Filtros = { esconderFeitas: true, soAtrasadas: false, responsavel: "", projeto: "" };
 
     function ler(): Filtros {
       try {
@@ -295,5 +349,24 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       aplicar(f);
     }
     bind();
+
+    // Botão "Filtrar só atrasadas" (no banner de alerta)
+    document.querySelectorAll<HTMLButtonElement>("[data-filtro-quick]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tipo = btn.dataset.filtroQuick;
+        if (tipo === "so-atrasadas") {
+          const cur = ler();
+          cur.soAtrasadas = true;
+          cur.esconderFeitas = true;
+          salvar(cur);
+          const cb1 = wrap.querySelector<HTMLInputElement>('[data-filtro="so-atrasadas"]');
+          const cb2 = wrap.querySelector<HTMLInputElement>('[data-filtro="esconder-feitas"]');
+          if (cb1) cb1.checked = true;
+          if (cb2) cb2.checked = true;
+          aplicar(cur);
+          wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
   }
 </script>

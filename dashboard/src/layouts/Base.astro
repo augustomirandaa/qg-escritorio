@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import Header from "../components/Header.astro";
+import { VERSAO_LABEL } from "../data/versao";
 
 interface Props {
   title: string;
@@ -10,7 +11,7 @@ interface Props {
   wide?: boolean;
 }
 
-const { title, subtitle, versao = "v2.0 · 25 abr 2026", wide = false } = Astro.props;
+const { title, subtitle, versao = VERSAO_LABEL, wide = false } = Astro.props;
 const pageTitle = title.toLowerCase().includes("qg") ? title : `${title} · QG`;
 const containerClass = wide
   ? "mx-auto max-w-[1280px] px-5 pt-6 pb-12"

@@ -9,14 +9,8 @@ import Base from "../layouts/Base.astro";
 >
   <div class="eo">
 
-    <div class="live">
-      <div class="item"><span class="pulse"></span><strong id="liveActiveCount">18</strong>&nbsp;agentes ativos agora</div>
-      <div class="sep"></div>
-      <div class="item"><strong id="liveRunning">3</strong>&nbsp;rodando neste momento</div>
-      <div class="sep"></div>
-      <div class="item"><strong id="liveAlerts">2</strong>&nbsp;alertas pendentes</div>
-      <div class="sep"></div>
-      <div class="item"><strong id="liveOnline">5</strong>&nbsp;humanos online · <span style="color:var(--eo-ink-faint)">atualizado <span id="liveTs">há 12s</span></span></div>
+    <div class="live live-prebackend">
+      <div class="item"><span class="pulse-static"></span>Visão estática · indicadores ao vivo (agentes ativos, rodando, alertas, humanos online) chegam quando a Fase 2 da plataforma ligar o backend</div>
     </div>
 
     <div class="toolbar">
@@ -35,18 +29,18 @@ import Base from "../layouts/Base.astro";
         <span class="chip" data-m="F">F · Marca pessoal</span>
       </div>
       <div class="ctrl" id="lensFilter">
-        <span class="lbl">Lente</span>
-        <span class="chip on" data-l="default">Padrão</span>
-        <span class="chip" data-l="status">Status</span>
-        <span class="chip" data-l="conn">Conexões</span>
-        <span class="chip" data-l="dorm">Gargalos</span>
+        <span class="lbl" title="Lentes destacam diferentes aspectos da operação">Lente</span>
+        <span class="chip on" data-l="default" title="Vista normal: tudo igualmente visível">Padrão</span>
+        <span class="chip" data-l="status" title="Destaca o estado de cada agente (ativo, parado, dormente)">Status</span>
+        <span class="chip" data-l="conn" title="Realça quem se conecta com quem (humanos ↔ agentes ↔ projetos)">Conexões</span>
+        <span class="chip" data-l="dorm" title="Foca em agentes dormentes ou processos parados que precisam destravar">Gargalos</span>
       </div>
     </div>
 
     <div class="main" id="eoMain">
       <div class="canvas-wrap" id="canvasWrap">
         <div class="scene-overlay">
-          <div class="badge"><span class="dot"></span>Vista ao vivo</div>
+          <div class="badge" title="Snapshot estático · não atualiza em tempo real ainda"><span class="dot dot-static"></span>Visão estática</div>
           <div class="badge" id="selectionBadge" style="display:none">Selecionado: <strong id="selectionName" style="margin-left:4px"></strong></div>
         </div>
 
@@ -140,9 +134,12 @@ import Base from "../layouts/Base.astro";
   /* status strip — ao vivo */
   .eo .live{display:flex; gap:18px; flex-wrap:wrap; align-items:center; padding:10px 14px; background:var(--eo-card); border:1px solid var(--eo-line); border-radius:10px; margin:0 0 12px; box-shadow:var(--eo-shadow-card)}
   .eo .live .pulse{width:8px; height:8px; border-radius:50%; background:var(--eo-green); box-shadow:0 0 0 0 rgba(22,163,74,.5); animation: eoPulse 2s ease-out infinite}
+  .eo .live .pulse-static{width:8px; height:8px; border-radius:50%; background:transparent; border: 1.5px dashed var(--eo-ink-faint); flex-shrink:0}
   .eo .live .item{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--eo-ink-soft)}
   .eo .live .item strong{color:var(--eo-ink); font-weight:600}
   .eo .live .sep{width:1px; height:18px; background:var(--eo-line)}
+  .eo .live.live-prebackend{background:var(--eo-bg); border-style:dashed}
+  .eo .live.live-prebackend .item{font-size:11.5px; color:var(--eo-ink-faint); font-style:italic}
   @keyframes eoPulse{
     0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}
     70%{box-shadow:0 0 0 10px rgba(22,163,74,0)}
@@ -245,6 +242,7 @@ import Base from "../layouts/Base.astro";
     box-shadow:var(--eo-shadow-card);
   }
   .eo .scene-overlay .badge .dot{width:6px;height:6px;border-radius:50%; background:var(--eo-green); animation:eoPulse 2s ease-out infinite}
+  .eo .scene-overlay .badge .dot.dot-static{background:transparent; border:1.5px dashed var(--eo-ink-faint); animation:none}
 
   /* detail panel */
   .eo .panel{

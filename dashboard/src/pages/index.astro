@@ -1,32 +1,109 @@
 ---
 import Base from "../layouts/Base.astro";
 import StatusBadge from "../components/StatusBadge.astro";
+import TaskItem from "../components/TaskItem.astro";
 import { PROJETOS, PROJETO_IDS } from "../data/projetos";
-import { TOTAL_AGENTES, ATIVOS_FASE_0 } from "../data/agentes";
-import { NUCLEO, EXECUTORES } from "../data/pessoas";
+import { ATIVOS_FASE_0 } from "../data/agentes";
+import { formatarPrazo, hojeISO, ordenarTarefas } from "../data/tarefa-utils";
+import type { Tarefa, ProjetoId } from "../data/types";
 
-const stats = [
-  { v: PROJETO_IDS.length, l: "modelos no portfólio" },
-  { v: TOTAL_AGENTES, l: "agentes mapeados" },
-  { v: `${NUCLEO.length} + ${EXECUTORES.length}`, l: "núcleo + executores" },
-  { v: ATIVOS_FASE_0, l: "agentes ativos · prioridade 1" },
-];
+const hoje = hojeISO();
+
+// Agrega tarefas globais com info de projeto pra cada
+interface TarefaGlobal extends Tarefa { __projeto: ProjetoId; __projetoLabel: string; __projetoSecreto: boolean; }
+const todasTarefas: TarefaGlobal[] = PROJETO_IDS.flatMap((pid) => {
+  const p = PROJETOS[pid];
+  return p.tarefas.map((t) => ({
+    ...t,
+    __projeto: pid,
+    __projetoLabel: p.secreto ? `Projeto ${pid}` : `${pid} · ${p.apelido}`,
+    __projetoSecreto: !!p.secreto,
+  }));
+});
+
+// Stats de atenção
+const tarefasAbertas = todasTarefas.filter((t) => t.status !== "feita");
+const atrasadas = tarefasAbertas.filter((t) => formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada");
+const paraHoje = tarefasAbertas.filter((t) => {
+  const f = formatarPrazo(t.prazo, hoje);
+  return f?.urgencia === "hoje";
+});
+const proximos7 = ordenarTarefas(
+  tarefasAbertas.filter((t) => {
+    const f = formatarPrazo(t.prazo, hoje);
+    return f && (f.urgencia === "hoje" || f.urgencia === "amanha" || f.urgencia === "proxima-semana");
+  })
+) as TarefaGlobal[];
+
+// Por projeto: contagens pra cada card
+function statsProjeto(pid: ProjetoId) {
+  const ts = PROJETOS[pid].tarefas;
+  return {
+    atrasadas: ts.filter((t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada").length,
+    pendentes: ts.filter((t) => t.status === "pendente").length,
+    progresso: ts.filter((t) => t.status === "em-progresso").length,
+    feitas: ts.filter((t) => t.status === "feita").length,
+    total: ts.length,
+  };
+}
 ---
 
 <Base
   title="QG · Centro de operações"
-  subtitle="Quem opera o quê em cada modelo · humanos + agentes"
+  subtitle="Estado do portfólio · o que precisa de atenção e quem opera o quê"
 >
-  <section class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
-    {stats.map((s) => (
-      <div class="bg-muted px-3.5 py-3 rounded-md">
-        <div class="text-[22px] font-medium leading-none">{s.v}</div>
-        <div class="text-[11px] text-soft mt-1 leading-snug">{s.l}</div>
-      </div>
-    ))}
+  {/* ═══ ATENÇÃO PRECISA ═══ */}
+  <section class="mb-7">
+    <h2 class="section-h mb-3">Atenção precisa</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+      <a
+        href="/tarefas"
+        class:list={[
+          "block px-3.5 py-3 rounded-md transition-colors",
+          atrasadas.length > 0
+            ? "bg-danger-bg hover:bg-danger-text/10 border-l-[3px] border-danger-text"
+            : "bg-muted hover:bg-canvas",
+        ]}
+      >
+        <div class:list={["text-[22px] font-medium leading-none", atrasadas.length > 0 ? "text-danger-text" : "text-soft"]}>
+          {atrasadas.length}
+        </div>
+        <div class:list={["text-[11px] mt-1 leading-snug", atrasadas.length > 0 ? "text-danger-text" : "text-soft"]}>
+          {atrasadas.length === 1 ? "tarefa atrasada" : "tarefas atrasadas"}
+        </div>
+      </a>
+
+      <a
+        href="/tarefas"
+        class:list={[
+          "block px-3.5 py-3 rounded-md transition-colors",
+          paraHoje.length > 0
+            ? "bg-warning-bg hover:bg-warning-text/10 border-l-[3px] border-warning-text"
+            : "bg-muted hover:bg-canvas",
+        ]}
+      >
+        <div class:list={["text-[22px] font-medium leading-none", paraHoje.length > 0 ? "text-warning-text" : "text-soft"]}>
+          {paraHoje.length}
+        </div>
+        <div class:list={["text-[11px] mt-1 leading-snug", paraHoje.length > 0 ? "text-warning-text" : "text-soft"]}>
+          {paraHoje.length === 1 ? "tarefa pra hoje" : "tarefas pra hoje"}
+        </div>
+      </a>
+
+      <a href="/tarefas" class="block bg-muted hover:bg-canvas px-3.5 py-3 rounded-md transition-colors">
+        <div class="text-[22px] font-medium leading-none">{tarefasAbertas.length}</div>
+        <div class="text-[11px] text-soft mt-1 leading-snug">tarefas em aberto</div>
+      </a>
+
+      <a href="/agentes" class="block bg-muted hover:bg-canvas px-3.5 py-3 rounded-md transition-colors">
+        <div class="text-[22px] font-medium leading-none">{ATIVOS_FASE_0}</div>
+        <div class="text-[11px] text-soft mt-1 leading-snug">agentes ativos agora</div>
+      </a>
+    </div>
   </section>
 
-  <section class="mb-2">
+  {/* ═══ OS 6 MODELOS ═══ */}
+  <section class="mb-7">
     <h2 class="section-h mb-3">Os 6 modelos do portfólio</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       {PROJETO_IDS.map((id) => {
@@ -54,11 +131,9 @@ const stats = [
             </a>
           );
         }
+        const s = statsProjeto(id);
         return (
-          <a
-            href={`/projetos/${id}`}
-            class="block panel hover:border-line-strong transition-colors"
-          >
+          <a href={`/projetos/${id}`} class="block panel hover:border-line-strong transition-colors">
             <div class="flex items-baseline justify-between gap-3 mb-1.5">
               <div class="flex items-baseline gap-2.5">
                 <span class="text-[20px] font-medium leading-none">{id}</span>
@@ -67,12 +142,24 @@ const stats = [
               <StatusBadge status={p.status} statusClass={p.statusClass} />
             </div>
             <p class="text-[12px] text-soft leading-snug m-0">{p.meta}</p>
-            <div class="flex items-center gap-3 mt-3 text-[11px] text-faint">
-              <span>{p.humanos.length} pessoas</span>
-              <span class="w-1 h-1 rounded-full bg-faint"></span>
-              <span>{p.agentes.length} agentes</span>
-              <span class="w-1 h-1 rounded-full bg-faint"></span>
-              <span>{p.tarefas.length} tarefas</span>
+            <div class="flex items-center gap-3 mt-3 text-[11px] flex-wrap">
+              {s.atrasadas > 0 && (
+                <span class="text-danger-text font-medium">
+                  ● {s.atrasadas} {s.atrasadas === 1 ? "atrasada" : "atrasadas"}
+                </span>
+              )}
+              {s.pendentes > 0 && (
+                <span class="text-soft">○ {s.pendentes} a fazer</span>
+              )}
+              {s.progresso > 0 && (
+                <span class="text-info-text">◐ {s.progresso} em progresso</span>
+              )}
+              {s.feitas > 0 && (
+                <span class="text-faint">✓ {s.feitas}</span>
+              )}
+              {s.total === 0 && (
+                <span class="text-faint italic">sem tarefas registradas</span>
+              )}
             </div>
           </a>
         );
@@ -80,18 +167,27 @@ const stats = [
     </div>
   </section>
 
-  <section class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-    <a href="/pessoas" class="panel hover:border-line-strong transition-colors">
-      <div class="text-[13px] font-medium mb-1">Pessoas</div>
-      <div class="text-[12px] text-soft leading-snug">Núcleo macro, executores limitados, network bidirecional · {NUCLEO.length + EXECUTORES.length + 1} no total.</div>
-    </a>
-    <a href="/agentes" class="panel hover:border-line-strong transition-colors">
-      <div class="text-[13px] font-medium mb-1">Agentes</div>
-      <div class="text-[12px] text-soft leading-snug">{TOTAL_AGENTES} agentes IA agrupados por área · ativos hoje vs dormentes até fase futura.</div>
-    </a>
-    <a href="/matriz" class="panel hover:border-line-strong transition-colors">
-      <div class="text-[13px] font-medium mb-1">Matriz</div>
-      <div class="text-[12px] text-soft leading-snug">Visão completa: 21 agentes × 6 modelos · onde cada agente toca, onde dorme.</div>
-    </a>
-  </section>
+  {/* ═══ PRÓXIMOS 7 DIAS ═══ */}
+  {proximos7.length > 0 && (
+    <section class="mb-2">
+      <div class="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+        <h2 class="section-h">Próximos 7 dias</h2>
+        <a href="/tarefas" class="text-[11px] text-soft hover:text-base">ver todas as tarefas →</a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {proximos7.slice(0, 8).map((t) => (
+          <TaskItem
+            tarefa={t}
+            projetoLabel={t.__projetoLabel}
+            projetoHref={`/projetos/${t.__projeto}`}
+          />
+        ))}
+      </div>
+      {proximos7.length > 8 && (
+        <p class="text-[11px] text-faint mt-3 text-center">
+          + {proximos7.length - 8} {proximos7.length - 8 === 1 ? "tarefa" : "tarefas"} nos próximos 7 dias
+        </p>
+      )}
+    </section>
+  )}
 </Base>

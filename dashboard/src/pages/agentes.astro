@@ -13,7 +13,7 @@ const adiados = AGENTES.filter(a => a.fase === "dormente" || a.fase === "futuro"
 
 <Base
   title="Agentes IA"
-  subtitle={`${TOTAL_AGENTES} agentes mapeados · ${ATIVOS_FASE_0} ativos prioridade 1 nas próximas 4-6 semanas`}
+  subtitle={`${TOTAL_AGENTES} agentes mapeados · ${ATIVOS_FASE_0} em uso ativo nas próximas 4-6 semanas`}
 >
   <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
     <div class="bg-muted px-3.5 py-3 rounded-md">
@@ -22,15 +22,15 @@ const adiados = AGENTES.filter(a => a.fase === "dormente" || a.fase === "futuro"
     </div>
     <div class="bg-success-bg px-3.5 py-3 rounded-md">
       <div class="text-[20px] font-medium leading-none text-success-text">{ATIVOS_FASE_0}</div>
-      <div class="text-[11px] text-success-text/80 mt-1">ativos · prioridade 1</div>
+      <div class="text-[11px] text-success-text/80 mt-1">ativos agora</div>
     </div>
     <div class="bg-warning-bg px-3.5 py-3 rounded-md">
       <div class="text-[20px] font-medium leading-none text-warning-text">{ativosP2}</div>
-      <div class="text-[11px] text-warning-text/80 mt-1">ativos · prioridade 2</div>
+      <div class="text-[11px] text-warning-text/80 mt-1">ativos planejados</div>
     </div>
     <div class="bg-neutral-bg px-3.5 py-3 rounded-md">
       <div class="text-[20px] font-medium leading-none text-neutral-text">{adiados}</div>
-      <div class="text-[11px] text-neutral-text/80 mt-1">dormentes ou pós-saída</div>
+      <div class="text-[11px] text-neutral-text/80 mt-1">dormentes / pós-saída</div>
     </div>
   </div>
 
@@ -49,16 +49,16 @@ const adiados = AGENTES.filter(a => a.fase === "dormente" || a.fase === "futuro"
               <div class="flex items-baseline justify-between gap-2 mb-1">
                 <div class="text-[14px] font-medium leading-tight">{a.nome}</div>
                 {a.fase === "ativo" && a.prioridade === 1 && (
-                  <span class="status-badge s-success">ativo · P1</span>
+                  <span class="status-badge s-success" title="Em uso ativo nesta fase">ativo agora</span>
                 )}
                 {a.fase === "ativo" && a.prioridade === 2 && (
-                  <span class="status-badge s-warning">ativo · P2</span>
+                  <span class="status-badge s-warning" title="Já configurado, ativa quando o modelo precisar">ativo planejado</span>
                 )}
                 {a.fase === "dormente" && (
-                  <span class="status-badge s-neutral">dormente</span>
+                  <span class="status-badge s-neutral" title="Não está em uso ainda · ativa em fase futura">dormente</span>
                 )}
                 {a.fase === "futuro" && (
-                  <span class="status-badge s-neutral">pós-saída</span>
+                  <span class="status-badge s-neutral" title="Só ativa após a saída do Augusto do grupo Primordialle">pós-saída</span>
                 )}
               </div>
               <p class="text-[12px] text-soft leading-snug m-0 mb-3">{a.funcao}</p>

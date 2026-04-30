@@ -45,7 +45,7 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       { titulo: "Manter campanhas rodando sem ruptura", responsavelId: "bryan", status: "em-progresso", porQue: "Operação Lumina é a única receita rodando — qualquer queda vira buraco financeiro imediato." },
       { titulo: "Documentar o playbook (urgente — desbloqueia C)", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-15", porQue: "Sem playbook documentado, vender consultoria do Modelo C = re-explicar tudo manualmente. É o blocker." },
       { titulo: "Preparar migração de contrato pré-saída", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-06-01", porQue: "Quando a saída acontecer, contrato precisa estar costurado direto entre Augusto e a Cintia, sem amarração com o grupo." },
-      { titulo: "Aquecer Dr. Julio Hernandez (futuro Modelo A)", responsavelId: "augusto", status: "pendente", porQue: "Pipeline de growth partners pra reduzir concentração de receita na Cintia." },
+      { titulo: "Aquecer Dr. Julio Hernandez (futuro Modelo A)", responsavelId: "augusto", status: "pendente", prazo: "2026-04-22", porQue: "Pipeline de growth partners pra reduzir concentração de receita na Cintia." },
     ],
     riscos: [
       "Atendimento depende inteiramente da Andressa",

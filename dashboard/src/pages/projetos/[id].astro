@@ -7,7 +7,7 @@ import TaskItem from "../../components/TaskItem.astro";
 import ConnectionItem from "../../components/ConnectionItem.astro";
 import { PROJETOS, PROJETO_IDS } from "../../data/projetos";
 import { pessoaById } from "../../data/pessoas";
-import { ordenarTarefas } from "../../data/tarefa-utils";
+import { ordenarTarefas, formatarPrazo, hojeISO } from "../../data/tarefa-utils";
 import type { ProjetoId } from "../../data/types";
 
 export function getStaticPaths() {
@@ -17,16 +17,19 @@ export function getStaticPaths() {
 const { id } = Astro.params as { id: ProjetoId };
 const p = PROJETOS[id];
 const hasDormente = p.agentes.some((a) => a.dormente);
+const hoje = hojeISO();
 
 const tarefasPendentes = ordenarTarefas(p.tarefas.filter((t) => t.status === "pendente"));
 const tarefasProgresso = ordenarTarefas(p.tarefas.filter((t) => t.status === "em-progresso"));
 const tarefasFeitas = ordenarTarefas(p.tarefas.filter((t) => t.status === "feita"));
+const tarefasAtrasadas = p.tarefas.filter(
+  (t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada"
+).length;
 
 const totalTarefas = p.tarefas.length;
 const feitasCount = tarefasFeitas.length;
 const progressoPct = totalTarefas > 0 ? Math.round((feitasCount / totalTarefas) * 100) : 0;
 
-// Responsáveis únicos para o filtro
 const responsaveisUnicos = Array.from(new Set(p.tarefas.map((t) => t.responsavelId)))
   .map((id) => pessoaById(id))
   .filter((p): p is NonNullable<typeof p> => !!p);
@@ -49,9 +52,22 @@ const gruposEnvolvidos = [
     pessoas: p.humanos.filter((h) => (g.tipos as readonly string[]).includes(h.tipo)),
   }))
   .filter((g) => g.pessoas.length > 0);
+
+// Tabs disponíveis (só renderiza tab se tem conteúdo)
+const tabs = [
+  { key: "briefing", label: "Briefing", show: !!p.briefing },
+  { key: "envolvidos", label: "Envolvidos", show: gruposEnvolvidos.length > 0 },
+  { key: "conexoes", label: "Conexões", show: conexoes.length > 0, count: conexoes.length },
+  { key: "agentes", label: "Agentes", show: p.agentes.length > 0, count: p.agentes.length },
+  { key: "tarefas", label: "Tarefas", show: true, count: totalTarefas, badge: tarefasAtrasadas > 0 ? tarefasAtrasadas : undefined },
+  { key: "riscos", label: "Riscos", show: p.riscos.length > 0, count: p.riscos.length },
+].filter((t) => t.show);
+
+const defaultTab = tabs[0]?.key ?? "tarefas";
 ---
 
-<Base title={baseTitle} subtitle={baseSubtitle}>
+<Base title={baseTitle} subtitle={baseSubtitle} wide={true}>
+  {/* Top nav A-F */}
   <nav class="flex items-center gap-1.5 mb-4 flex-wrap">
     {PROJETO_IDS.map((pid) => (
       <a
@@ -79,6 +95,7 @@ const gruposEnvolvidos = [
     ))}
   </nav>
 
+  {/* Tela de senha pra projetos secretos */}
   {p.secreto && (
     <article class="panel secret-prompt" data-secret-prompt={p.id}>
       <div class="flex items-center gap-2 mb-2 text-warning-text">
@@ -112,218 +129,490 @@ const gruposEnvolvidos = [
     </article>
   )}
 
-  <article class="panel secret-content" data-secret-content={p.secreto ? p.id : ""}>
-    <div class="flex items-start justify-between gap-3.5 mb-1.5">
-      <div>
-        <div class="text-[17px] font-medium leading-tight">{p.titulo}</div>
-        <div class="text-[12px] text-soft mt-1.5">{p.meta}</div>
-      </div>
-      <div class="flex items-center gap-2">
-        {p.relatorioPath && (
-          <a href={p.relatorioPath} class="text-[11px] px-2.5 py-1.5 rounded-md bg-info-bg text-info-text border-[0.5px] border-info-border hover:bg-info-border hover:text-surface transition-colors whitespace-nowrap">
-            Ver relatório →
-          </a>
-        )}
-        <StatusBadge status={p.status} statusClass={p.statusClass} />
+  {/* Conteúdo principal */}
+  <article class="secret-content" data-secret-content={p.secreto ? p.id : ""}>
+    {/* Hero */}
+    <div class="panel mb-3">
+      <div class="flex items-start justify-between gap-3.5">
+        <div>
+          <div class="text-[17px] font-medium leading-tight">{p.titulo}</div>
+          <div class="text-[12px] text-soft mt-1.5">{p.meta}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+          {p.relatorioPath && (
+            <a href={p.relatorioPath} class="text-[11px] px-2.5 py-1.5 rounded-md bg-info-bg text-info-text border-[0.5px] border-info-border hover:bg-info-border hover:text-surface transition-colors whitespace-nowrap">
+              Ver relatório →
+            </a>
+          )}
+          <StatusBadge status={p.status} statusClass={p.statusClass} />
+        </div>
       </div>
     </div>
 
-    <div class="tip mt-3">{p.tip}</div>
+    {/* Layout 2-cols: main com tabs + rail lateral */}
+    <div class="proj-layout">
 
-    {p.briefing && (
-      <div class="briefing mt-5">
-        <div class="briefing-tabs" role="tablist">
-          <button type="button" class="brief-pill" data-key="contexto" aria-controls="brief-contexto">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/>
-            </svg>
-            <span>Contexto</span>
-          </button>
-          <button type="button" class="brief-pill" data-key="objetivo" aria-controls="brief-objetivo">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/>
-              <circle cx="12" cy="12" r="5"/>
-              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            </svg>
-            <span>Objetivo</span>
-          </button>
-          <button type="button" class="brief-pill" data-key="momento" aria-controls="brief-momento">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/>
-              <polyline points="12 7 12 12 15.5 14"/>
-            </svg>
-            <span>Momento</span>
-          </button>
-        </div>
-        <div class="briefing-panels">
-          <div class="brief-panel" id="brief-contexto" data-key="contexto" role="tabpanel" hidden>
-            <div class="brief-panel-label">Contexto</div>
-            <p class="brief-panel-text">{p.briefing.contexto}</p>
-          </div>
-          <div class="brief-panel" id="brief-objetivo" data-key="objetivo" role="tabpanel" hidden>
-            <div class="brief-panel-label">Objetivo</div>
-            <p class="brief-panel-text">{p.briefing.objetivo}</p>
-          </div>
-          <div class="brief-panel" id="brief-momento" data-key="momento" role="tabpanel" hidden>
-            <div class="brief-panel-label">Momento</div>
-            <p class="brief-panel-text">{p.briefing.momento}</p>
-          </div>
-        </div>
-      </div>
-    )}
+      {/* Main com tabs internas */}
+      <div class="proj-main panel" data-projeto-id={p.id}>
+        <nav class="proj-tabs" role="tablist" aria-label="Seções do projeto">
+          {tabs.map((t) => (
+            <button
+              type="button"
+              class="proj-tab-btn"
+              data-tab={t.key}
+              data-default={t.key === defaultTab ? "1" : "0"}
+              role="tab"
+              aria-controls={`tab-${t.key}`}
+            >
+              <span>{t.label}</span>
+              {t.count !== undefined && t.count > 0 && (
+                <span class="proj-tab-count">{t.count}</span>
+              )}
+              {t.badge !== undefined && (
+                <span class="proj-tab-badge" title={`${t.badge} atrasada${t.badge !== 1 ? "s" : ""}`}>
+                  {t.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
 
-    <h3 class="section-h mt-6 mb-2.5">Envolvidos</h3>
-    <div class="envolvidos">
-      {gruposEnvolvidos.map((g) => (
-        <div class="envolvidos-grupo">
-          <div class="envolvidos-sub">{g.titulo}</div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {g.pessoas.map((h) => <HumanCard pessoa={h} />)}
-          </div>
-        </div>
-      ))}
-    </div>
+        <div class="proj-panels">
 
-    {conexoes.length > 0 && (
-      <>
-        <div class="flex items-baseline justify-between mt-6 mb-2.5 gap-3 flex-wrap">
-          <h3 class="section-h">Conexões · canais e ferramentas</h3>
-          <div class="flex items-center gap-3 text-[11px] text-soft">
-            {conexoesConectadas > 0 && <span><strong class="font-medium text-success-text">{conexoesConectadas}</strong> conectada{conexoesConectadas !== 1 ? "s" : ""}</span>}
-            {conexoesPendentes > 0 && <span><strong class="font-medium text-warning-text">{conexoesPendentes}</strong> pendente{conexoesPendentes !== 1 ? "s" : ""}</span>}
-            {conexoesPlanejadas > 0 && <span><strong class="font-medium text-faint">{conexoesPlanejadas}</strong> planejada{conexoesPlanejadas !== 1 ? "s" : ""}</span>}
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {conexoes.map((c) => <ConnectionItem conexao={c} />)}
-        </div>
-      </>
-    )}
+          {/* TAB: Briefing */}
+          {p.briefing && (
+            <section class="proj-tab-panel briefing" id="tab-briefing" data-tab="briefing" role="tabpanel" hidden>
+              <p class="text-[13px] text-soft leading-relaxed m-0 mb-4">{p.tip}</p>
+              <div class="briefing-tabs" role="tablist">
+                <button type="button" class="brief-pill" data-key="contexto" aria-controls="brief-contexto">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/>
+                  </svg>
+                  <span>Contexto</span>
+                </button>
+                <button type="button" class="brief-pill" data-key="objetivo" aria-controls="brief-objetivo">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                  </svg>
+                  <span>Objetivo</span>
+                </button>
+                <button type="button" class="brief-pill" data-key="momento" aria-controls="brief-momento">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+                  </svg>
+                  <span>Momento</span>
+                </button>
+              </div>
+              <div class="briefing-panels">
+                <div class="brief-panel" id="brief-contexto" data-key="contexto" role="tabpanel" hidden>
+                  <div class="brief-panel-label">Contexto</div>
+                  <p class="brief-panel-text">{p.briefing.contexto}</p>
+                </div>
+                <div class="brief-panel" id="brief-objetivo" data-key="objetivo" role="tabpanel" hidden>
+                  <div class="brief-panel-label">Objetivo</div>
+                  <p class="brief-panel-text">{p.briefing.objetivo}</p>
+                </div>
+                <div class="brief-panel" id="brief-momento" data-key="momento" role="tabpanel" hidden>
+                  <div class="brief-panel-label">Momento</div>
+                  <p class="brief-panel-text">{p.briefing.momento}</p>
+                </div>
+              </div>
+            </section>
+          )}
 
-    <h3 class="section-h mt-6 mb-2.5">
-      Agentes {hasDormente ? "· ativos + dormentes" : "ativos · prioridade 1"}
-    </h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-      {p.agentes.map((a) => <AgentCard agente={a} />)}
-    </div>
+          {/* TAB: Envolvidos */}
+          {gruposEnvolvidos.length > 0 && (
+            <section class="proj-tab-panel" id="tab-envolvidos" data-tab="envolvidos" role="tabpanel" hidden>
+              <div class="envolvidos">
+                {gruposEnvolvidos.map((g) => (
+                  <div class="envolvidos-grupo">
+                    <div class="envolvidos-sub">{g.titulo}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {g.pessoas.map((h) => <HumanCard pessoa={h} />)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-    <div class="mt-6 pt-4 border-t border-line tarefas-secao" data-projeto-id={p.id}>
-      <div class="flex items-baseline justify-between mb-2 gap-3 flex-wrap">
-        <h4 class="text-[15px] font-medium">Tarefas</h4>
-        <div class="flex items-center gap-3 text-[11px] text-soft">
-          {tarefasPendentes.length > 0 && <span><strong class="font-medium text-base">{tarefasPendentes.length}</strong> a fazer</span>}
-          {tarefasProgresso.length > 0 && <span><strong class="font-medium text-info-text">{tarefasProgresso.length}</strong> em progresso</span>}
-          {tarefasFeitas.length > 0 && <span><strong class="font-medium text-success-text">{tarefasFeitas.length}</strong> feita{tarefasFeitas.length !== 1 ? "s" : ""}</span>}
-        </div>
-      </div>
+          {/* TAB: Conexões */}
+          {conexoes.length > 0 && (
+            <section class="proj-tab-panel" id="tab-conexoes" data-tab="conexoes" role="tabpanel" hidden>
+              <div class="flex items-center gap-3 text-[11px] text-soft mb-3 flex-wrap">
+                {conexoesConectadas > 0 && <span><strong class="font-medium text-success-text">{conexoesConectadas}</strong> conectada{conexoesConectadas !== 1 ? "s" : ""}</span>}
+                {conexoesPendentes > 0 && <span><strong class="font-medium text-warning-text">{conexoesPendentes}</strong> pendente{conexoesPendentes !== 1 ? "s" : ""}</span>}
+                {conexoesPlanejadas > 0 && <span><strong class="font-medium text-faint">{conexoesPlanejadas}</strong> planejada{conexoesPlanejadas !== 1 ? "s" : ""}</span>}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {conexoes.map((c) => <ConnectionItem conexao={c} />)}
+              </div>
+            </section>
+          )}
 
-      {totalTarefas > 0 && (
-        <div class="progresso-wrap mb-4">
-          <div class="progresso-track">
-            <div class="progresso-fill" style={`width: ${progressoPct}%`}></div>
-          </div>
-          <span class="progresso-label">{feitasCount}/{totalTarefas} · {progressoPct}%</span>
-        </div>
-      )}
+          {/* TAB: Agentes */}
+          {p.agentes.length > 0 && (
+            <section class="proj-tab-panel" id="tab-agentes" data-tab="agentes" role="tabpanel" hidden>
+              {hasDormente && (
+                <p class="text-[11px] text-soft mb-3">Inclui agentes dormentes que serão ativados em fase futura.</p>
+              )}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {p.agentes.map((a) => <AgentCard agente={a} />)}
+              </div>
+            </section>
+          )}
 
-      <div class="filtros-wrap mb-3">
-        <label class="filtro-toggle">
-          <input type="checkbox" data-filtro="esconder-feitas" />
-          <span>esconder feitas</span>
-        </label>
-        <label class="filtro-toggle">
-          <input type="checkbox" data-filtro="so-atrasadas" />
-          <span>só atrasadas</span>
-        </label>
-        {responsaveisUnicos.length > 1 && (
-          <label class="filtro-select">
-            <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">resp.</span>
-            <select data-filtro="responsavel">
-              <option value="">todos</option>
-              {responsaveisUnicos.map((r) => (
-                <option value={r.id}>{r.nome.split(" ")[0]}</option>
-              ))}
-            </select>
-          </label>
-        )}
-        <button type="button" class="filtro-reset" data-filtro="reset">limpar</button>
-      </div>
+          {/* TAB: Tarefas */}
+          <section class="proj-tab-panel tarefas-secao" id="tab-tarefas" data-tab="tarefas" role="tabpanel" hidden data-projeto-id={p.id}>
+            {totalTarefas > 0 ? (
+              <>
+                <div class="progresso-wrap mb-4">
+                  <div class="progresso-track">
+                    <div class="progresso-fill" style={`width: ${progressoPct}%`}></div>
+                  </div>
+                  <span class="progresso-label">{feitasCount}/{totalTarefas} · {progressoPct}%</span>
+                </div>
 
-      {tarefasPendentes.length > 0 && (
-        <div class="mb-4 task-group" data-group="pendente">
-          <div class="task-group-h">
-            <span class="task-group-dot s-pendente"></span>
-            <span>A fazer · <span class="task-group-count">{tarefasPendentes.length}</span></span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-            {tarefasPendentes.map((t) => <TaskItem tarefa={t} />)}
-          </div>
-        </div>
-      )}
+                <div class="filtros-wrap mb-3">
+                  <label class="filtro-toggle">
+                    <input type="checkbox" data-filtro="esconder-feitas" />
+                    <span>esconder feitas</span>
+                  </label>
+                  <label class="filtro-toggle">
+                    <input type="checkbox" data-filtro="so-atrasadas" />
+                    <span>só atrasadas</span>
+                  </label>
+                  {responsaveisUnicos.length > 1 && (
+                    <label class="filtro-select">
+                      <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">resp.</span>
+                      <select data-filtro="responsavel">
+                        <option value="">todos</option>
+                        {responsaveisUnicos.map((r) => (
+                          <option value={r.id}>{r.nome.split(" ")[0]}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <button type="button" class="filtro-reset" data-filtro="reset">limpar</button>
+                </div>
 
-      {tarefasProgresso.length > 0 && (
-        <div class="mb-4 task-group" data-group="em-progresso">
-          <div class="task-group-h">
-            <span class="task-group-dot s-progresso"></span>
-            <span>Em progresso · <span class="task-group-count">{tarefasProgresso.length}</span></span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-            {tarefasProgresso.map((t) => <TaskItem tarefa={t} />)}
-          </div>
-        </div>
-      )}
+                {tarefasPendentes.length > 0 && (
+                  <div class="mb-4 task-group" data-group="pendente">
+                    <div class="task-group-h">
+                      <span class="task-group-dot s-pendente"></span>
+                      <span>A fazer · <span class="task-group-count">{tarefasPendentes.length}</span></span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 task-group-grid">
+                      {tarefasPendentes.map((t) => <TaskItem tarefa={t} />)}
+                    </div>
+                  </div>
+                )}
 
-      {tarefasFeitas.length > 0 && (
-        <div class="mb-4 task-group" data-group="feita">
-          <div class="task-group-h">
-            <span class="task-group-dot s-feita"></span>
-            <span>Feitas · <span class="task-group-count">{tarefasFeitas.length}</span></span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-            {tarefasFeitas.map((t) => <TaskItem tarefa={t} />)}
-          </div>
-        </div>
-      )}
+                {tarefasProgresso.length > 0 && (
+                  <div class="mb-4 task-group" data-group="em-progresso">
+                    <div class="task-group-h">
+                      <span class="task-group-dot s-progresso"></span>
+                      <span>Em progresso · <span class="task-group-count">{tarefasProgresso.length}</span></span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 task-group-grid">
+                      {tarefasProgresso.map((t) => <TaskItem tarefa={t} />)}
+                    </div>
+                  </div>
+                )}
 
-      <details class="mt-4 task-helper">
-        <summary class="task-helper-summary">
-          <span>+ Adicionar uma tarefa</span>
-          <span class="text-[10px] text-faint">como editar</span>
-        </summary>
-        <div class="task-helper-body">
-          <p class="text-[12px] text-soft m-0 mb-2.5 leading-snug">
-            Em modo brochure, tarefas vivem em código. Pra adicionar uma nova ao projeto <strong>{p.id} · {p.apelido}</strong>, abra <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">src/data/projetos.ts</code>, ache o bloco do projeto, e adicione um item ao array <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">tarefas</code>:
-          </p>
-          <pre class="task-helper-snippet"><code>{`{
+                {tarefasFeitas.length > 0 && (
+                  <div class="mb-4 task-group" data-group="feita">
+                    <div class="task-group-h">
+                      <span class="task-group-dot s-feita"></span>
+                      <span>Feitas · <span class="task-group-count">{tarefasFeitas.length}</span></span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 task-group-grid">
+                      {tarefasFeitas.map((t) => <TaskItem tarefa={t} />)}
+                    </div>
+                  </div>
+                )}
+
+                <details class="mt-4 task-helper">
+                  <summary class="task-helper-summary">
+                    <span>+ Adicionar uma tarefa</span>
+                    <span class="text-[10px] text-faint">como editar</span>
+                  </summary>
+                  <div class="task-helper-body">
+                    <p class="text-[12px] text-soft m-0 mb-2.5 leading-snug">
+                      Em modo brochure, tarefas vivem em código. Pra adicionar uma nova ao projeto <strong>{p.id} · {p.apelido}</strong>, abra <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">src/data/projetos.ts</code>, ache o bloco do projeto, e adicione um item ao array <code class="bg-surface px-1.5 py-0.5 rounded text-[11px] border border-line">tarefas</code>:
+                    </p>
+                    <pre class="task-helper-snippet"><code>{`{
   titulo: "Descreva a tarefa em uma frase",
   responsavelId: "augusto",  // ou pablo, matheus, antonio, well, bryan, andressa
   status: "pendente",         // ou "em-progresso", "feita"
+  prioridade: "alta",         // opcional
+  prazo: "2026-05-15",        // opcional, ISO date
   porQue: "Por que essa tarefa importa — qual problema resolve",
 },`}</code></pre>
-          <p class="text-[11px] text-faint m-0 mt-2 leading-snug">
-            Quando a plataforma virar viva (Fase 1), criação passa a ser via interface. Por enquanto, edição via código é a fonte de verdade.
-          </p>
-        </div>
-      </details>
-    </div>
+                  </div>
+                </details>
+              </>
+            ) : (
+              <div class="empty-state">
+                <p class="text-[13px] text-soft m-0 mb-2">Nenhuma tarefa registrada ainda neste projeto.</p>
+                <p class="text-[11px] text-faint m-0">Edite <code class="bg-muted px-1.5 py-0.5 rounded text-[10px]">src/data/projetos.ts</code> pra adicionar a primeira.</p>
+              </div>
+            )}
+          </section>
 
-    <div class="mt-5 pt-4 border-t border-line">
-      <h4 class="section-h mb-2.5">Riscos críticos</h4>
-      <ul class="m-0 p-0 list-none">
-        {p.riscos.map((r) => (
-          <li class="text-[13px] leading-relaxed mb-1.5 pl-3.5 relative before:content-[''] before:absolute before:left-0 before:top-[9px] before:w-1 before:h-1 before:rounded-full before:bg-[#E24B4A]">{r}</li>
-        ))}
-      </ul>
+          {/* TAB: Riscos */}
+          {p.riscos.length > 0 && (
+            <section class="proj-tab-panel" id="tab-riscos" data-tab="riscos" role="tabpanel" hidden>
+              <ul class="m-0 p-0 list-none">
+                {p.riscos.map((r) => (
+                  <li class="text-[13px] leading-relaxed mb-2 pl-3.5 relative before:content-[''] before:absolute before:left-0 before:top-[9px] before:w-1 before:h-1 before:rounded-full before:bg-[#E24B4A]">{r}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      </div>
+
+      {/* Rail lateral */}
+      <aside class="proj-rail">
+        <div class="rail-card">
+          <div class="rail-label">Status</div>
+          <div class="rail-status">
+            <StatusBadge status={p.status} statusClass={p.statusClass} />
+          </div>
+        </div>
+
+        <div class="rail-card">
+          <div class="rail-label">Tarefas</div>
+          <div class="rail-stats">
+            {tarefasAtrasadas > 0 && (
+              <a href="/tarefas" class="rail-stat rail-danger" title="Ver tarefas atrasadas">
+                <span class="rail-stat-num">{tarefasAtrasadas}</span>
+                <span class="rail-stat-l">{tarefasAtrasadas === 1 ? "atrasada" : "atrasadas"}</span>
+              </a>
+            )}
+            <button type="button" class="rail-stat" data-rail-tab="tarefas" title="Ver tarefas">
+              <span class="rail-stat-num">{tarefasPendentes.length}</span>
+              <span class="rail-stat-l">a fazer</span>
+            </button>
+            {tarefasProgresso.length > 0 && (
+              <button type="button" class="rail-stat rail-info" data-rail-tab="tarefas" title="Em progresso">
+                <span class="rail-stat-num">{tarefasProgresso.length}</span>
+                <span class="rail-stat-l">em progresso</span>
+              </button>
+            )}
+            {progressoPct > 0 && (
+              <div class="rail-progress">
+                <div class="rail-progress-track"><div class="rail-progress-fill" style={`width: ${progressoPct}%`}></div></div>
+                <span class="rail-progress-label">{progressoPct}% feito</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {p.riscos.length > 0 && (
+          <div class="rail-card">
+            <div class="flex items-center justify-between mb-2">
+              <div class="rail-label" style="margin:0">Riscos críticos</div>
+              {p.riscos.length > 3 && (
+                <button type="button" class="rail-link" data-rail-tab="riscos">ver {p.riscos.length}</button>
+              )}
+            </div>
+            <ul class="m-0 p-0 list-none">
+              {p.riscos.slice(0, 3).map((r) => (
+                <li class="text-[12px] leading-snug mb-1.5 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full before:bg-[#E24B4A]">{r}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {conexoes.length > 0 && (
+          <div class="rail-card">
+            <div class="rail-label">Conexões</div>
+            <div class="text-[12px] text-soft leading-snug">
+              {conexoesConectadas > 0 && <div><strong class="text-success-text font-medium">{conexoesConectadas}</strong> conectada{conexoesConectadas !== 1 ? "s" : ""}</div>}
+              {conexoesPendentes > 0 && <div><strong class="text-warning-text font-medium">{conexoesPendentes}</strong> pendente{conexoesPendentes !== 1 ? "s" : ""}</div>}
+              {conexoesPlanejadas > 0 && <div><strong class="text-faint font-medium">{conexoesPlanejadas}</strong> planejada{conexoesPlanejadas !== 1 ? "s" : ""}</div>}
+            </div>
+          </div>
+        )}
+      </aside>
     </div>
   </article>
 </Base>
 
 <style>
-  .briefing-tabs {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+  /* Layout */
+  .proj-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 14px;
+    align-items: start;
   }
+  @media (max-width: 768px) {
+    .proj-layout { grid-template-columns: 1fr; }
+  }
+
+  .proj-main { padding: 18px 20px; }
+
+  /* Tabs */
+  .proj-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--color-line);
+    overflow-x: auto;
+    margin-left: -4px;
+    margin-right: -4px;
+    padding: 0 4px;
+  }
+  .proj-tab-btn {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 8px 12px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--color-soft);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .proj-tab-btn:hover { color: var(--color-base); }
+  .proj-tab-btn.active {
+    color: var(--color-info-text);
+    border-bottom-color: var(--color-info-border);
+    font-weight: 500;
+  }
+  .proj-tab-count {
+    font-size: 10px;
+    color: var(--color-faint);
+    background: var(--color-muted);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+  .proj-tab-btn.active .proj-tab-count {
+    background: var(--color-info-bg);
+    color: var(--color-info-text);
+  }
+  .proj-tab-badge {
+    font-size: 10px;
+    color: #fff;
+    background: var(--color-danger-text);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .proj-tab-panel { animation: tab-fade 0.15s ease-out; }
+  @keyframes tab-fade {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Rail */
+  .proj-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    top: 16px;
+  }
+  @media (max-width: 768px) {
+    .proj-rail { position: static; }
+  }
+  .rail-card {
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .rail-label {
+    font-size: 10px;
+    color: var(--color-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .rail-status :global(.status-badge) { font-size: 11px; }
+
+  .rail-stats { display: flex; flex-direction: column; gap: 4px; }
+  .rail-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    font-family: inherit;
+    transition: background 0.12s;
+    text-align: left;
+  }
+  .rail-stat:hover { background: var(--color-muted); }
+  .rail-stat-num {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-base);
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+  }
+  .rail-stat-l {
+    font-size: 11px;
+    color: var(--color-soft);
+  }
+  .rail-stat.rail-danger .rail-stat-num,
+  .rail-stat.rail-danger .rail-stat-l { color: var(--color-danger-text); }
+  .rail-stat.rail-info .rail-stat-num { color: var(--color-info-text); }
+
+  .rail-progress { margin-top: 8px; padding: 0 6px; }
+  .rail-progress-track {
+    height: 4px;
+    background: var(--color-canvas);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .rail-progress-fill { height: 100%; background: var(--color-success-text); border-radius: 2px; }
+  .rail-progress-label {
+    display: block;
+    font-size: 10px;
+    color: var(--color-faint);
+    margin-top: 4px;
+  }
+
+  .rail-link {
+    background: transparent;
+    border: 0;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--color-info-text);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 0;
+  }
+  .rail-link:hover { color: var(--color-base); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--color-muted);
+    border-radius: 8px;
+  }
+
+  /* Briefing pills */
+  .briefing-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
   .brief-pill {
     display: inline-flex;
     align-items: center;
@@ -338,23 +627,14 @@ const gruposEnvolvidos = [
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .brief-pill:hover {
-    background: var(--color-muted);
-    color: var(--color-base);
-  }
+  .brief-pill:hover { background: var(--color-muted); color: var(--color-base); }
   .brief-pill.active {
     background: var(--color-info-bg);
     border-color: var(--color-info-border);
     color: var(--color-info-text);
     font-weight: 500;
   }
-  .brief-pill svg {
-    flex-shrink: 0;
-  }
-
-  .briefing-panels {
-    margin-top: 0;
-  }
+  .briefing-panels { margin-top: 0; }
   .brief-panel {
     margin-top: 10px;
     padding: 12px 14px;
@@ -381,10 +661,172 @@ const gruposEnvolvidos = [
     from { opacity: 0; transform: translateY(-2px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+  /* Secret content gate */
+  .secret-content[data-secret-content=""] { display: block; }
+  .secret-content:not([data-secret-content=""]) { display: none; }
+  .secret-content.unlocked { display: block; }
+  .secret-prompt.unlocked { display: none; }
+
+  .secret-input {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--color-base);
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 240px;
+  }
+  .secret-input:focus { border-color: var(--color-info-border); }
+  .secret-submit {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 0.5px solid var(--color-info-border);
+    background: var(--color-info-bg);
+    color: var(--color-info-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .secret-submit:hover { background: var(--color-info-border); color: var(--color-surface); }
+
+  /* Envolvidos */
+  .envolvidos { display: flex; flex-direction: column; gap: 14px; }
+  .envolvidos-sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--color-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  /* Tarefas section reused styles */
+  .progresso-wrap { display: flex; align-items: center; gap: 10px; }
+  .progresso-track { flex: 1; height: 6px; background: var(--color-canvas); border-radius: 3px; overflow: hidden; }
+  .progresso-fill { height: 100%; background: var(--color-success-text); border-radius: 3px; transition: width 0.3s; }
+  .progresso-label { font-size: 11px; color: var(--color-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .filtros-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border: 0.5px solid var(--color-line);
+  }
+  .filtro-toggle { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-soft); cursor: pointer; user-select: none; }
+  .filtro-toggle input[type="checkbox"] { accent-color: var(--color-info-border); }
+  .filtro-toggle:hover { color: var(--color-base); }
+  .filtro-select { display: inline-flex; align-items: center; }
+  .filtro-select select { font-family: inherit; font-size: 12px; padding: 3px 6px; border-radius: 4px; border: 0.5px solid var(--color-line); background: var(--color-surface); color: var(--color-base); }
+  .filtro-reset { margin-left: auto; font-family: inherit; font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 0.5px solid var(--color-line); background: transparent; color: var(--color-faint); cursor: pointer; }
+  .filtro-reset:hover { background: var(--color-surface); color: var(--color-base); }
+
+  .task[data-hidden="1"] { display: none; }
+  .task-group[data-empty="1"] { display: none; }
+
+  .task-group-h {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .task-group-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .task-group-dot.s-pendente { background: var(--color-faint); }
+  .task-group-dot.s-progresso { background: var(--color-info-border); }
+  .task-group-dot.s-feita { background: var(--color-success-text); }
+
+  .task-helper {
+    background: var(--color-muted);
+    border: 0.5px solid var(--color-line);
+    border-radius: 8px;
+    padding: 0;
+  }
+  .task-helper-summary {
+    cursor: pointer;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--color-soft);
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .task-helper-summary::-webkit-details-marker { display: none; }
+  .task-helper-summary:hover { color: var(--color-base); }
+  .task-helper[open] .task-helper-summary { color: var(--color-base); border-bottom: 0.5px solid var(--color-line); }
+  .task-helper-body { padding: 12px 14px 14px; }
+  .task-helper-snippet {
+    background: var(--color-base);
+    color: #d8d6cf;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .task-helper-snippet code { background: transparent; padding: 0; }
 </style>
 
 <script>
-  // Briefing tabs toggle
+  // Tabs internas do projeto
+  const projMain = document.querySelector<HTMLElement>(".proj-main");
+  if (projMain) {
+    const projetoId = projMain.dataset.projetoId ?? "x";
+    const tabKey = `proj-${projetoId}-tab`;
+    const tabBtns = projMain.querySelectorAll<HTMLButtonElement>(".proj-tab-btn");
+    const panels = projMain.querySelectorAll<HTMLElement>(".proj-tab-panel");
+
+    function setActive(target: string) {
+      tabBtns.forEach((b) => b.classList.toggle("active", b.dataset.tab === target));
+      panels.forEach((p) => (p.hidden = p.dataset.tab !== target));
+    }
+
+    const saved = sessionStorage.getItem(tabKey);
+    const initial = saved && Array.from(tabBtns).some((b) => b.dataset.tab === saved)
+      ? saved
+      : (Array.from(tabBtns).find((b) => b.dataset.default === "1")?.dataset.tab ?? tabBtns[0]?.dataset.tab ?? "tarefas");
+    setActive(initial);
+
+    tabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.dataset.tab;
+        if (!target) return;
+        sessionStorage.setItem(tabKey, target);
+        setActive(target);
+      });
+    });
+
+    // Botões do rail que mudam a tab
+    document.querySelectorAll<HTMLElement>("[data-rail-tab]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const target = el.dataset.railTab;
+        if (!target) return;
+        sessionStorage.setItem(tabKey, target);
+        setActive(target);
+        projMain.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
+  // Briefing pills (dentro da tab "briefing")
   const briefing = document.querySelector(".briefing");
   if (briefing) {
     const buttons = briefing.querySelectorAll<HTMLButtonElement>(".brief-pill");
@@ -404,41 +846,27 @@ const gruposEnvolvidos = [
     });
   }
 
-  // Filtros das tarefas (sessionStorage por projeto)
+  // Filtros das tarefas
   const tarefasSecao = document.querySelector<HTMLElement>(".tarefas-secao");
   if (tarefasSecao) {
     const projetoId = tarefasSecao.dataset.projetoId ?? "x";
     const storageKey = `tarefa-filtros-${projetoId}`;
 
-    const inputs = tarefasSecao.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-      "[data-filtro]"
-    );
+    const inputs = tarefasSecao.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>("[data-filtro]");
 
-    type Filtros = {
-      esconderFeitas: boolean;
-      soAtrasadas: boolean;
-      responsavel: string;
-    };
-
+    type Filtros = { esconderFeitas: boolean; soAtrasadas: boolean; responsavel: string; };
     const padrao: Filtros = { esconderFeitas: false, soAtrasadas: false, responsavel: "" };
 
     function ler(): Filtros {
       try {
         const raw = sessionStorage.getItem(storageKey);
-        if (!raw) return { ...padrao };
-        return { ...padrao, ...JSON.parse(raw) };
-      } catch {
-        return { ...padrao };
-      }
+        return raw ? { ...padrao, ...JSON.parse(raw) } : { ...padrao };
+      } catch { return { ...padrao }; }
     }
-
-    function salvar(f: Filtros) {
-      sessionStorage.setItem(storageKey, JSON.stringify(f));
-    }
+    function salvar(f: Filtros) { sessionStorage.setItem(storageKey, JSON.stringify(f)); }
 
     function aplicar(f: Filtros) {
-      const tasks = tarefasSecao!.querySelectorAll<HTMLElement>(".task");
-      tasks.forEach((t) => {
+      tarefasSecao!.querySelectorAll<HTMLElement>(".task").forEach((t) => {
         const status = t.dataset.status;
         const responsavel = t.dataset.responsavel;
         const atrasada = t.dataset.atrasada === "1";
@@ -448,8 +876,6 @@ const gruposEnvolvidos = [
         if (f.responsavel && responsavel !== f.responsavel) hide = true;
         t.dataset.hidden = hide ? "1" : "0";
       });
-
-      // Atualiza contagem em cada grupo + esconde grupo se vazio
       tarefasSecao!.querySelectorAll<HTMLElement>(".task-group").forEach((g) => {
         const visible = g.querySelectorAll<HTMLElement>('.task[data-hidden="0"]').length;
         const countEl = g.querySelector<HTMLElement>(".task-group-count");
@@ -461,32 +887,17 @@ const gruposEnvolvidos = [
     function bind() {
       const f = ler();
       inputs.forEach((el) => {
-        const filtro = el.dataset.filtro;
+        const filtro = (el as HTMLElement).dataset.filtro;
         if (!filtro) return;
         if (filtro === "esconder-feitas" && el instanceof HTMLInputElement) {
           el.checked = f.esconderFeitas;
-          el.addEventListener("change", () => {
-            const cur = ler();
-            cur.esconderFeitas = el.checked;
-            salvar(cur);
-            aplicar(cur);
-          });
+          el.addEventListener("change", () => { const c = ler(); c.esconderFeitas = el.checked; salvar(c); aplicar(c); });
         } else if (filtro === "so-atrasadas" && el instanceof HTMLInputElement) {
           el.checked = f.soAtrasadas;
-          el.addEventListener("change", () => {
-            const cur = ler();
-            cur.soAtrasadas = el.checked;
-            salvar(cur);
-            aplicar(cur);
-          });
+          el.addEventListener("change", () => { const c = ler(); c.soAtrasadas = el.checked; salvar(c); aplicar(c); });
         } else if (filtro === "responsavel" && el instanceof HTMLSelectElement) {
           el.value = f.responsavel;
-          el.addEventListener("change", () => {
-            const cur = ler();
-            cur.responsavel = el.value;
-            salvar(cur);
-            aplicar(cur);
-          });
+          el.addEventListener("change", () => { const c = ler(); c.responsavel = el.value; salvar(c); aplicar(c); });
         } else if (filtro === "reset" && el instanceof HTMLButtonElement) {
           el.addEventListener("click", () => {
             sessionStorage.removeItem(storageKey);
@@ -503,7 +914,7 @@ const gruposEnvolvidos = [
     bind();
   }
 
-  // Secret project gate (UX-only, NOT real security — see comment in projetos.ts)
+  // Secret project gate
   const SECRET_PASSWORD = "1234";
   const content = document.querySelector<HTMLElement>("[data-secret-content]");
   const secretId = content?.dataset.secretContent;
@@ -535,197 +946,3 @@ const gruposEnvolvidos = [
     });
   }
 </script>
-
-<style>
-  .secret-content[data-secret-content=""] { display: block; }
-  .secret-content:not([data-secret-content=""]) { display: none; }
-  .secret-content.unlocked { display: block; }
-  .secret-prompt.unlocked { display: none; }
-
-  .secret-input {
-    flex: 1;
-    padding: 9px 12px;
-    border-radius: 8px;
-    border: 0.5px solid var(--color-line);
-    background: var(--color-surface);
-    font-family: inherit;
-    font-size: 13px;
-    color: var(--color-base);
-    outline: none;
-    transition: border-color 0.15s;
-    max-width: 240px;
-  }
-  .secret-input:focus {
-    border-color: var(--color-info-border);
-  }
-  .secret-submit {
-    padding: 9px 16px;
-    border-radius: 8px;
-    border: 0.5px solid var(--color-info-border);
-    background: var(--color-info-bg);
-    color: var(--color-info-text);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .secret-submit:hover {
-    background: var(--color-info-border);
-    color: var(--color-surface);
-  }
-
-  .envolvidos {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .envolvidos-sub {
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--color-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 6px;
-  }
-
-  .progresso-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .progresso-track {
-    flex: 1;
-    height: 6px;
-    background: var(--color-canvas);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .progresso-fill {
-    height: 100%;
-    background: var(--color-success-text);
-    border-radius: 3px;
-    transition: width 0.3s;
-  }
-  .progresso-label {
-    font-size: 11px;
-    color: var(--color-soft);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .filtros-wrap {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 8px 12px;
-    background: var(--color-muted);
-    border-radius: 8px;
-    border: 0.5px solid var(--color-line);
-  }
-  .filtro-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    color: var(--color-soft);
-    cursor: pointer;
-    user-select: none;
-  }
-  .filtro-toggle input[type="checkbox"] {
-    accent-color: var(--color-info-border);
-  }
-  .filtro-toggle:hover { color: var(--color-base); }
-
-  .filtro-select {
-    display: inline-flex;
-    align-items: center;
-  }
-  .filtro-select select {
-    font-family: inherit;
-    font-size: 12px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    border: 0.5px solid var(--color-line);
-    background: var(--color-surface);
-    color: var(--color-base);
-  }
-  .filtro-reset {
-    margin-left: auto;
-    font-family: inherit;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 0.5px solid var(--color-line);
-    background: transparent;
-    color: var(--color-faint);
-    cursor: pointer;
-  }
-  .filtro-reset:hover {
-    background: var(--color-surface);
-    color: var(--color-base);
-  }
-
-  .task[data-hidden="1"] { display: none; }
-  .task-group[data-empty="1"] { display: none; }
-
-  .task-group-h {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--color-soft);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .task-group-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-  .task-group-dot.s-pendente { background: var(--color-faint); }
-  .task-group-dot.s-progresso { background: var(--color-info-border); }
-  .task-group-dot.s-feita { background: var(--color-success-text); }
-
-  .task-helper {
-    background: var(--color-muted);
-    border: 0.5px solid var(--color-line);
-    border-radius: 8px;
-    padding: 0;
-  }
-  .task-helper-summary {
-    cursor: pointer;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: var(--color-soft);
-    list-style: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-  }
-  .task-helper-summary::-webkit-details-marker { display: none; }
-  .task-helper-summary:hover { color: var(--color-base); }
-  .task-helper[open] .task-helper-summary {
-    color: var(--color-base);
-    border-bottom: 0.5px solid var(--color-line);
-  }
-  .task-helper-body {
-    padding: 12px 14px 14px;
-  }
-  .task-helper-snippet {
-    background: var(--color-base);
-    color: #d8d6cf;
-    font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
-    font-size: 11px;
-    line-height: 1.55;
-    padding: 12px 14px;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin: 0;
-  }
-  .task-helper-snippet code { background: transparent; padding: 0; }
-</style>
