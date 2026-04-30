@@ -10,15 +10,17 @@ interface TarefaComProjeto extends Tarefa {
   __projeto: ProjetoId;
   __projetoLabel: string;
   __projetoSecreto: boolean;
+  __taskId: string;
 }
 
 const todasTarefas: TarefaComProjeto[] = PROJETO_IDS.flatMap((pid) => {
   const p = PROJETOS[pid];
-  return p.tarefas.map((t) => ({
+  return p.tarefas.map((t, idx) => ({
     ...t,
     __projeto: pid,
     __projetoLabel: p.secreto ? `Projeto ${pid}` : `${pid} · ${p.apelido}`,
     __projetoSecreto: !!p.secreto,
+    __taskId: `${pid}-${idx}`,
   }));
 });
 
@@ -30,15 +32,23 @@ const hoje = hojeISO();
 const totalAtrasadas = todasTarefas.filter(
   (t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada"
 ).length;
+const totalHoje = todasTarefas.filter(
+  (t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "hoje"
+).length;
+const totalAlta = todasTarefas.filter(
+  (t) => t.status !== "feita" && t.prioridade === "alta"
+).length;
+const totalSemPrazo = todasTarefas.filter(
+  (t) => t.status !== "feita" && !t.prazo
+).length;
 
-// Responsáveis únicos com tarefas
 const responsaveisIdsComTarefas = Array.from(new Set(todasTarefas.map((t) => t.responsavelId)));
 const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.includes(p.id));
 ---
 
 <Base
   title="Tarefas · todas"
-  subtitle="Visão consolidada das tarefas dos 6 modelos"
+  subtitle="Visão consolidada das tarefas dos 6 modelos · click pra agir, atalhos teclado, kanban opcional"
 >
   {totalAtrasadas > 0 && (
     <div class="alerta-atrasadas mb-5">
@@ -65,26 +75,70 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     </div>
   )}
 
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
-    <div class="bg-muted px-3.5 py-3 rounded-md">
-      <div class="text-[20px] font-medium leading-none">{todasTarefas.length}</div>
-      <div class="text-[11px] text-soft mt-1">total</div>
-    </div>
-    <div class="bg-muted px-3.5 py-3 rounded-md">
-      <div class="text-[20px] font-medium leading-none">{pendentes.length}</div>
-      <div class="text-[11px] text-soft mt-1">a fazer</div>
-    </div>
-    <div class="bg-info-bg px-3.5 py-3 rounded-md">
-      <div class="text-[20px] font-medium leading-none text-info-text">{progresso.length}</div>
-      <div class="text-[11px] text-info-text/80 mt-1">em progresso</div>
-    </div>
-    <div class={totalAtrasadas > 0 ? "bg-danger-bg px-3.5 py-3 rounded-md" : "bg-muted px-3.5 py-3 rounded-md"}>
-      <div class={totalAtrasadas > 0 ? "text-[20px] font-medium leading-none text-danger-text" : "text-[20px] font-medium leading-none text-soft"}>{totalAtrasadas}</div>
-      <div class={totalAtrasadas > 0 ? "text-[11px] text-danger-text/80 mt-1" : "text-[11px] text-soft mt-1"}>atrasadas</div>
-    </div>
+  <!-- Stat cards clicáveis -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4 stat-grid">
+    <button type="button" class="stat-card" data-stat-filter="todas">
+      <div class="stat-v">{todasTarefas.length}</div>
+      <div class="stat-l">total</div>
+    </button>
+    <button type="button" class="stat-card stat-pendente" data-stat-filter="pendente">
+      <div class="stat-v">{pendentes.length}</div>
+      <div class="stat-l">a fazer</div>
+    </button>
+    <button type="button" class="stat-card stat-progresso" data-stat-filter="em-progresso">
+      <div class="stat-v">{progresso.length}</div>
+      <div class="stat-l">em progresso</div>
+    </button>
+    <button type="button" class={totalAtrasadas > 0 ? "stat-card stat-atrasadas" : "stat-card"} data-stat-filter="atrasadas">
+      <div class="stat-v">{totalAtrasadas}</div>
+      <div class="stat-l">atrasadas</div>
+    </button>
   </div>
 
-  <div class="filtros-wrap mb-5 tarefas-globais">
+  <!-- Quick filter chips -->
+  <div class="chips-row mb-3">
+    <button type="button" class="chip" data-chip="hoje">
+      <span class="chip-dot" style="background:var(--color-warning-text)"></span>
+      Hoje
+      <span class="chip-count">{totalHoje}</span>
+    </button>
+    <button type="button" class="chip" data-chip="atrasadas">
+      <span class="chip-dot" style="background:var(--color-danger-text)"></span>
+      Atrasadas
+      <span class="chip-count">{totalAtrasadas}</span>
+    </button>
+    <button type="button" class="chip" data-chip="esta-semana">
+      <span class="chip-dot" style="background:var(--color-info-border)"></span>
+      Esta semana
+    </button>
+    <button type="button" class="chip" data-chip="sem-prazo">
+      <span class="chip-dot" style="background:var(--color-faint)"></span>
+      Sem prazo
+      <span class="chip-count">{totalSemPrazo}</span>
+    </button>
+    <button type="button" class="chip" data-chip="alta">
+      <span class="chip-dot" style="background:var(--color-danger-text)"></span>
+      Alta prioridade
+      <span class="chip-count">{totalAlta}</span>
+    </button>
+  </div>
+
+  <!-- Toolbar: search + filtros + sort + view -->
+  <div class="toolbar mb-5 tarefas-globais">
+    <label class="search-wrap">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="m20 20-3-3"/>
+      </svg>
+      <input
+        type="search"
+        data-filtro="search"
+        placeholder="Buscar tarefa, porQue, responsável… (atalho: /)"
+        autocomplete="off"
+      />
+      <kbd class="kbd">/</kbd>
+    </label>
+
     <label class="filtro-toggle">
       <input type="checkbox" data-filtro="esconder-feitas" />
       <span>esconder feitas</span>
@@ -93,8 +147,9 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       <input type="checkbox" data-filtro="so-atrasadas" />
       <span>só atrasadas</span>
     </label>
+
     <label class="filtro-select">
-      <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">resp.</span>
+      <span class="filtro-lbl">resp.</span>
       <select data-filtro="responsavel">
         <option value="">todos</option>
         {responsaveis.map((r) => (
@@ -102,8 +157,9 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
         ))}
       </select>
     </label>
+
     <label class="filtro-select">
-      <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">projeto</span>
+      <span class="filtro-lbl">projeto</span>
       <select data-filtro="projeto">
         <option value="">todos</option>
         {PROJETO_IDS.map((pid) => (
@@ -113,62 +169,136 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
         ))}
       </select>
     </label>
-    <button type="button" class="filtro-reset" data-filtro="reset">limpar</button>
+
+    <label class="filtro-select">
+      <span class="filtro-lbl">ordenar</span>
+      <select data-filtro="sort">
+        <option value="default">prazo + prioridade</option>
+        <option value="prioridade">prioridade</option>
+        <option value="prazo-asc">prazo ↑</option>
+        <option value="prazo-desc">prazo ↓</option>
+        <option value="alpha">alfabético</option>
+        <option value="projeto">projeto</option>
+      </select>
+    </label>
+
+    <span class="toolbar-spacer"></span>
+
+    <div class="view-toggle" role="tablist" aria-label="Modo de visualização">
+      <button type="button" class="vt-btn on" data-view="lista" role="tab" title="Lista (atual)">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        Lista
+      </button>
+      <button type="button" class="vt-btn" data-view="kanban" role="tab" title="Kanban (3 colunas)">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="18"/><rect x="9" y="3" width="6" height="14"/><rect x="15" y="3" width="6" height="10"/></svg>
+        Kanban
+      </button>
+    </div>
+
+    <button type="button" class="filtro-reset" data-filtro="reset" title="Limpar todos os filtros">limpar</button>
+    <button type="button" class="kbd-help" data-action="show-help" title="Atalhos de teclado">?</button>
   </div>
 
-  {pendentes.length > 0 && (
-    <div class="mb-5 task-group" data-group="pendente">
-      <div class="task-group-h">
-        <span class="task-group-dot s-pendente"></span>
-        <span>A fazer · <span class="task-group-count">{pendentes.length}</span></span>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-        {pendentes.map((t) => (
-          <TaskItem
-            tarefa={t}
-            projetoLabel={t.__projetoLabel}
-            projetoHref={`/projetos/${t.__projeto}`}
-          />
-        ))}
-      </div>
+  <!-- Empty state global -->
+  <div class="empty-global" hidden>
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
     </div>
-  )}
+    <div>
+      <div class="empty-title">Nada bate com os filtros</div>
+      <div class="empty-sub">Tenta limpar os filtros ou trocar o termo de busca.</div>
+    </div>
+    <button type="button" class="filtro-reset" data-filtro="reset">limpar filtros</button>
+  </div>
 
-  {progresso.length > 0 && (
-    <div class="mb-5 task-group" data-group="em-progresso">
-      <div class="task-group-h">
-        <span class="task-group-dot s-progresso"></span>
-        <span>Em progresso · <span class="task-group-count">{progresso.length}</span></span>
+  <div class="task-canvas" data-view="lista">
+    {pendentes.length > 0 && (
+      <div class="task-group" data-group="pendente">
+        <div class="task-group-h">
+          <span class="task-group-dot s-pendente"></span>
+          <span>A fazer · <span class="task-group-count">{pendentes.length}</span></span>
+        </div>
+        <div class="task-group-grid">
+          {pendentes.map((t) => (
+            <TaskItem
+              tarefa={t}
+              taskId={t.__taskId}
+              projetoLabel={t.__projetoLabel}
+              projetoHref={`/projetos/${t.__projeto}`}
+              projetoId={t.__projeto}
+            />
+          ))}
+        </div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-        {progresso.map((t) => (
-          <TaskItem
-            tarefa={t}
-            projetoLabel={t.__projetoLabel}
-            projetoHref={`/projetos/${t.__projeto}`}
-          />
-        ))}
-      </div>
-    </div>
-  )}
+    )}
 
-  {feitas.length > 0 && (
-    <div class="mb-5 task-group" data-group="feita">
-      <div class="task-group-h">
-        <span class="task-group-dot s-feita"></span>
-        <span>Feitas · <span class="task-group-count">{feitas.length}</span></span>
+    {progresso.length > 0 && (
+      <div class="task-group" data-group="em-progresso">
+        <div class="task-group-h">
+          <span class="task-group-dot s-progresso"></span>
+          <span>Em progresso · <span class="task-group-count">{progresso.length}</span></span>
+        </div>
+        <div class="task-group-grid">
+          {progresso.map((t) => (
+            <TaskItem
+              tarefa={t}
+              taskId={t.__taskId}
+              projetoLabel={t.__projetoLabel}
+              projetoHref={`/projetos/${t.__projeto}`}
+              projetoId={t.__projeto}
+            />
+          ))}
+        </div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
-        {feitas.map((t) => (
-          <TaskItem
-            tarefa={t}
-            projetoLabel={t.__projetoLabel}
-            projetoHref={`/projetos/${t.__projeto}`}
-          />
-        ))}
+    )}
+
+    {feitas.length > 0 && (
+      <div class="task-group" data-group="feita">
+        <div class="task-group-h">
+          <span class="task-group-dot s-feita"></span>
+          <span>Feitas · <span class="task-group-count">{feitas.length}</span></span>
+        </div>
+        <div class="task-group-grid">
+          {feitas.map((t) => (
+            <TaskItem
+              tarefa={t}
+              taskId={t.__taskId}
+              projetoLabel={t.__projetoLabel}
+              projetoHref={`/projetos/${t.__projeto}`}
+              projetoId={t.__projeto}
+            />
+          ))}
+        </div>
       </div>
+    )}
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-host" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- Help overlay -->
+  <div class="help-overlay" hidden data-help>
+    <div class="help-card">
+      <button type="button" class="help-close" data-action="close-help" aria-label="Fechar">×</button>
+      <h3>Atalhos de teclado</h3>
+      <table>
+        <tbody>
+          <tr><td><kbd>/</kbd></td><td>focar busca</td></tr>
+          <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>próxima / anterior tarefa</td></tr>
+          <tr><td><kbd>x</kbd></td><td>marcar focada como feita (ou voltar a pendente)</td></tr>
+          <tr><td><kbd>e</kbd></td><td>expandir / colapsar focada</td></tr>
+          <tr><td><kbd>1</kbd></td><td>ver lista</td></tr>
+          <tr><td><kbd>2</kbd></td><td>ver kanban</td></tr>
+          <tr><td><kbd>g</kbd> + <kbd>h</kbd></td><td>pular pra "Hoje"</td></tr>
+          <tr><td><kbd>g</kbd> + <kbd>a</kbd></td><td>pular pra "Atrasadas"</td></tr>
+          <tr><td><kbd>r</kbd></td><td>limpar filtros</td></tr>
+          <tr><td><kbd>?</kbd></td><td>esta tela</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>fechar / blur busca</td></tr>
+        </tbody>
+      </table>
+      <p class="help-foot">As mudanças de status que você faz aqui ficam salvas no <i>localStorage</i> do navegador (Fase 0 brochure). Quando o backend ligar, vão pra dados reais.</p>
     </div>
-  )}
+  </div>
 </Base>
 
 <style>
@@ -179,194 +309,953 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     border-radius: 8px;
     padding: 12px 16px;
   }
-  .alerta-icon {
-    color: var(--color-danger-text);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
+  .alerta-icon { color: var(--color-danger-text); flex-shrink: 0; margin-top: 1px; }
   .alerta-btn {
-    background: var(--color-danger-text);
-    color: #fff;
-    border: 0;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    flex-shrink: 0;
+    background: var(--color-danger-text); color: #fff; border: 0;
+    padding: 6px 12px; border-radius: 6px;
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; flex-shrink: 0; align-self: flex-start;
     transition: opacity 0.15s;
-    align-self: flex-start;
   }
   .alerta-btn:hover { opacity: 0.85; }
 
-  .filtros-wrap {
+  /* Stat cards */
+  .stat-card {
+    background: var(--color-muted);
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 0.5px solid transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    color: var(--color-base);
+  }
+  .stat-card:hover {
+    background: var(--color-surface);
+    border-color: var(--color-line-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px -6px rgba(0,0,0,0.15);
+  }
+  .stat-card[aria-pressed="true"] {
+    background: var(--color-info-bg);
+    border-color: var(--color-info-border);
+  }
+  .stat-card[aria-pressed="true"] .stat-v { color: var(--color-info-text); }
+  .stat-v { font-size: 20px; font-weight: 600; line-height: 1; }
+  .stat-l { font-size: 11px; color: var(--color-soft); margin-top: 4px; }
+  .stat-progresso { background: var(--color-info-bg); }
+  .stat-progresso .stat-v { color: var(--color-info-text); }
+  .stat-progresso .stat-l { color: var(--color-info-text); opacity: .8; }
+  .stat-atrasadas { background: var(--color-danger-bg); }
+  .stat-atrasadas .stat-v { color: var(--color-danger-text); }
+  .stat-atrasadas .stat-l { color: var(--color-danger-text); opacity: .8; }
+
+  /* Chips */
+  .chips-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--color-base);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { background: var(--color-muted); }
+  .chip[aria-pressed="true"] {
+    background: var(--color-base);
+    color: #fff;
+    border-color: var(--color-base);
+  }
+  .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .chip-count {
+    font-size: 10px;
+    background: rgba(0,0,0,.06);
+    padding: 1px 6px;
+    border-radius: 999px;
+    color: var(--color-soft);
+  }
+  .chip[aria-pressed="true"] .chip-count {
+    background: rgba(255,255,255,.18);
+    color: rgba(255,255,255,.85);
+  }
+
+  /* Toolbar */
+  .toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
     padding: 10px 14px;
     background: var(--color-muted);
     border-radius: 8px;
     border: 0.5px solid var(--color-line);
   }
-  .filtro-toggle {
-    display: inline-flex;
+  .search-wrap {
+    flex: 1 1 240px;
+    min-width: 200px;
+    display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    color: var(--color-soft);
-    cursor: pointer;
-    user-select: none;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-line);
+    border-radius: 6px;
+    color: var(--color-faint);
+  }
+  .search-wrap:focus-within { border-color: var(--color-info-border); color: var(--color-info-text); }
+  .search-wrap input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--color-base);
+    outline: none;
+    min-width: 0;
+  }
+  .search-wrap input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 0.5px solid var(--color-line-strong);
+    background: var(--color-muted);
+    color: var(--color-faint);
+  }
+
+  .filtro-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--color-soft);
+    cursor: pointer; user-select: none;
   }
   .filtro-toggle input { accent-color: var(--color-info-border); }
   .filtro-toggle:hover { color: var(--color-base); }
-  .filtro-select {
-    display: inline-flex;
-    align-items: center;
-  }
+
+  .filtro-select { display: inline-flex; align-items: center; gap: 5px; }
+  .filtro-lbl { font-size: 10px; color: var(--color-faint); text-transform: uppercase; letter-spacing: 0.4px; }
   .filtro-select select {
-    font-family: inherit;
-    font-size: 12px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    border: 0.5px solid var(--color-line);
-    background: var(--color-surface);
-    color: var(--color-base);
-  }
-  .filtro-reset {
-    margin-left: auto;
-    font-family: inherit;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 0.5px solid var(--color-line);
-    background: transparent;
-    color: var(--color-faint);
+    font-family: inherit; font-size: 12px; padding: 4px 7px;
+    border-radius: 5px; border: 0.5px solid var(--color-line);
+    background: var(--color-surface); color: var(--color-base);
     cursor: pointer;
   }
-  .filtro-reset:hover { background: var(--color-surface); color: var(--color-base); }
 
-  .task[data-hidden="1"] { display: none; }
+  .toolbar-spacer { flex: 1; min-width: 0; }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .vt-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: inherit; font-size: 12px;
+    padding: 5px 10px;
+    border: 0; background: transparent;
+    color: var(--color-soft); cursor: pointer;
+    transition: all 0.12s;
+  }
+  .vt-btn:hover { background: var(--color-muted); }
+  .vt-btn.on { background: var(--color-base); color: #fff; }
+
+  .filtro-reset, .kbd-help {
+    font-family: inherit; font-size: 11px;
+    padding: 4px 9px; border-radius: 5px;
+    border: 0.5px solid var(--color-line);
+    background: transparent; color: var(--color-faint);
+    cursor: pointer; transition: all 0.12s;
+  }
+  .filtro-reset:hover, .kbd-help:hover {
+    background: var(--color-surface); color: var(--color-base);
+  }
+  .kbd-help { font-weight: 600; }
+
+  /* Empty state */
+  .empty-global {
+    display: flex; align-items: center; gap: 14px;
+    padding: 20px 22px;
+    background: var(--color-muted);
+    border: 0.5px dashed var(--color-line-strong);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .empty-icon { color: var(--color-faint); }
+  .empty-title { font-size: 13px; font-weight: 500; color: var(--color-base); }
+  .empty-sub { font-size: 12px; color: var(--color-soft); margin-top: 3px; }
+
+  /* Lista x Kanban */
+  .task-canvas { display: block; }
+  .task-canvas .task-group { margin-bottom: 20px; }
+  .task-canvas .task-group-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  @media (min-width: 768px) {
+    .task-canvas[data-view="lista"] .task-group-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .task-canvas[data-view="kanban"] {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .task-canvas[data-view="kanban"] .task-group { margin-bottom: 0; }
+  .task-canvas[data-view="kanban"] .task-group-grid { grid-template-columns: 1fr; }
+  .task-canvas[data-view="kanban"] .task-group {
+    padding: 12px;
+    background: var(--color-muted);
+    border-radius: 10px;
+    border: 0.5px solid var(--color-line);
+  }
+  @media (max-width: 900px) {
+    .task-canvas[data-view="kanban"] { grid-template-columns: 1fr; }
+  }
+
   .task-group[data-empty="1"] { display: none; }
 
   .task-group-h {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--color-soft);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
+    font-size: 12px; font-weight: 500; color: var(--color-soft);
+    text-transform: uppercase; letter-spacing: 0.6px;
     margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
+    display: flex; align-items: center; gap: 7px;
   }
-  .task-group-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
+  .task-group-dot { width: 8px; height: 8px; border-radius: 50%; }
   .task-group-dot.s-pendente { background: var(--color-faint); }
   .task-group-dot.s-progresso { background: var(--color-info-border); }
   .task-group-dot.s-feita { background: var(--color-success-text); }
+
+  /* Toast */
+  .toast-host {
+    position: fixed;
+    bottom: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 1000;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+    max-width: calc(100vw - 36px);
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    background: var(--color-base); color: #fff;
+    border-radius: 8px;
+    font-size: 12.5px;
+    box-shadow: 0 12px 30px -10px rgba(0,0,0,.4);
+    animation: toastIn 0.18s ease-out, toastOut 0.18s ease-out 2.6s forwards;
+    max-width: 460px;
+  }
+  .toast.success { background: var(--color-success-text); }
+  .toast.info    { background: var(--color-info-border); }
+  .toast.warn    { background: var(--color-warning-text); }
+  .toast.danger  { background: var(--color-danger-text); }
+  .toast button {
+    background: rgba(255,255,255,.18);
+    color: #fff; border: 0;
+    padding: 3px 9px;
+    border-radius: 4px; font-family: inherit; font-size: 11px;
+    cursor: pointer;
+  }
+  .toast button:hover { background: rgba(255,255,255,.28); }
+  @keyframes toastIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to   { opacity: 0; transform: translateY(8px); } }
+
+  /* Help overlay */
+  .help-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,20,18,.55);
+    z-index: 1100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 18px;
+    animation: fadeIn 0.15s ease-out;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .help-card {
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: 22px 24px;
+    max-width: 460px; width: 100%;
+    position: relative;
+    box-shadow: 0 24px 60px -10px rgba(0,0,0,.45);
+  }
+  .help-card h3 {
+    font-size: 14px; font-weight: 600;
+    margin: 0 0 14px;
+    color: var(--color-base);
+  }
+  .help-card table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .help-card td { padding: 5px 0; vertical-align: middle; }
+  .help-card td:first-child { width: 110px; }
+  .help-card kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-line-strong);
+    background: var(--color-muted);
+    color: var(--color-base);
+  }
+  .help-foot {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--color-line);
+    font-size: 11.5px; color: var(--color-soft); line-height: 1.5;
+  }
+  .help-close {
+    position: absolute; top: 10px; right: 12px;
+    width: 28px; height: 28px;
+    border: 0; border-radius: 50%;
+    background: transparent;
+    font-size: 22px; line-height: 1;
+    color: var(--color-faint); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .help-close:hover { background: var(--color-muted); color: var(--color-base); }
 </style>
 
 <script>
-  const wrap = document.querySelector<HTMLElement>(".tarefas-globais");
-  if (wrap) {
-    const storageKey = "tarefa-filtros-globais";
-    const inputs = wrap.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-filtro]");
+  type Status = "pendente" | "em-progresso" | "feita";
+  type SortMode = "default" | "prioridade" | "prazo-asc" | "prazo-desc" | "alpha" | "projeto";
 
-    type Filtros = {
-      esconderFeitas: boolean;
-      soAtrasadas: boolean;
-      responsavel: string;
-      projeto: string;
+  type Filtros = {
+    search: string;
+    esconderFeitas: boolean;
+    soAtrasadas: boolean;
+    responsavel: string;
+    projeto: string;
+    sort: SortMode;
+    chip: string;       // hoje | atrasadas | esta-semana | sem-prazo | alta | ""
+    statFilter: string; // pendente | em-progresso | atrasadas | todas | ""
+  };
+
+  type Override = { status?: Status; snoozeDays?: number; doneAt?: string };
+  type OverrideMap = Record<string, Override>;
+
+  const STORAGE = {
+    filtros: "tarefa-filtros-globais",
+    overrides: "tarefa-overrides-globais",
+    view: "tarefa-view",
+  };
+
+  const padrao: Filtros = {
+    search: "",
+    esconderFeitas: true,
+    soAtrasadas: false,
+    responsavel: "",
+    projeto: "",
+    sort: "default",
+    chip: "",
+    statFilter: "",
+  };
+
+  // ─── overrides em localStorage ───
+  function lerOverrides(): OverrideMap {
+    try {
+      const raw = localStorage.getItem(STORAGE.overrides);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+  function salvarOverrides(o: OverrideMap) {
+    localStorage.setItem(STORAGE.overrides, JSON.stringify(o));
+  }
+  function aplicarOverridesNoDOM() {
+    const map = lerOverrides();
+    document.querySelectorAll<HTMLElement>(".task").forEach((el) => {
+      const id = el.dataset.id;
+      if (!id) return;
+      const ov = map[id];
+      if (!ov) return;
+      if (ov.status) {
+        el.dataset.status = ov.status;
+        el.classList.remove("task-pendente", "task-em-progresso", "task-feita");
+        el.classList.add(`task-${ov.status}`);
+      }
+    });
+    reagruparPorStatus();
+    atualizarContagens();
+    atualizarStats();
+  }
+
+  // ─── filtros em sessionStorage ───
+  function lerFiltros(): Filtros {
+    try {
+      const raw = sessionStorage.getItem(STORAGE.filtros);
+      return raw ? { ...padrao, ...JSON.parse(raw) } : { ...padrao };
+    } catch {
+      return { ...padrao };
+    }
+  }
+  function salvarFiltros(f: Filtros) { sessionStorage.setItem(STORAGE.filtros, JSON.stringify(f)); }
+
+  // ─── view (lista|kanban) ───
+  function lerView(): "lista" | "kanban" {
+    return (localStorage.getItem(STORAGE.view) as any) || "lista";
+  }
+  function salvarView(v: "lista" | "kanban") { localStorage.setItem(STORAGE.view, v); }
+
+  // ─── helpers ───
+  function hojeISO(): string {
+    const d = new Date();
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
+  }
+  function diasEntre(a: string, b: string): number {
+    return Math.round((new Date(a+"T00:00:00").getTime() - new Date(b+"T00:00:00").getTime()) / 86400000);
+  }
+  function semanasISO(prazo: string): boolean {
+    const d = diasEntre(prazo, hojeISO());
+    return d >= 0 && d <= 7;
+  }
+
+  // ─── reagrupamento (quando status muda) ───
+  function reagruparPorStatus() {
+    const groups: Record<Status, HTMLElement | null> = {
+      "pendente": document.querySelector('.task-group[data-group="pendente"] .task-group-grid'),
+      "em-progresso": document.querySelector('.task-group[data-group="em-progresso"] .task-group-grid'),
+      "feita": document.querySelector('.task-group[data-group="feita"] .task-group-grid'),
     };
-    // Default na view global: esconder feitas (reduz ruído ao chegar)
-    const padrao: Filtros = { esconderFeitas: true, soAtrasadas: false, responsavel: "", projeto: "" };
+    document.querySelectorAll<HTMLElement>(".task").forEach((el) => {
+      const status = (el.dataset.status as Status) || "pendente";
+      const dest = groups[status];
+      if (dest && el.parentElement !== dest) {
+        dest.appendChild(el);
+        el.dataset.flash = "1";
+        setTimeout(() => { delete el.dataset.flash; }, 600);
+      }
+    });
+  }
 
-    function ler(): Filtros {
-      try {
-        const raw = sessionStorage.getItem(storageKey);
-        return raw ? { ...padrao, ...JSON.parse(raw) } : { ...padrao };
-      } catch {
-        return { ...padrao };
+  function atualizarContagens() {
+    document.querySelectorAll<HTMLElement>(".task-group").forEach((g) => {
+      const visible = g.querySelectorAll<HTMLElement>('.task[data-hidden="0"][data-hidden-search="0"]').length;
+      const countEl = g.querySelector<HTMLElement>(".task-group-count");
+      if (countEl) countEl.textContent = String(visible);
+      g.dataset.empty = visible === 0 ? "1" : "0";
+    });
+    const totalVisible = document.querySelectorAll<HTMLElement>('.task[data-hidden="0"][data-hidden-search="0"]').length;
+    const empty = document.querySelector<HTMLElement>(".empty-global");
+    if (empty) empty.toggleAttribute("hidden", totalVisible > 0);
+  }
+
+  function atualizarStats() {
+    const total = document.querySelectorAll(".task").length;
+    const pend  = document.querySelectorAll('.task[data-status="pendente"]').length;
+    const prog  = document.querySelectorAll('.task[data-status="em-progresso"]').length;
+    const atr   = Array.from(document.querySelectorAll<HTMLElement>(".task")).filter((t) =>
+      t.dataset.status !== "feita" && t.dataset.atrasada === "1"
+    ).length;
+
+    const set = (sel: string, v: number) => {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (el) el.textContent = String(v);
+    };
+    set('[data-stat-filter="todas"] .stat-v', total);
+    set('[data-stat-filter="pendente"] .stat-v', pend);
+    set('[data-stat-filter="em-progresso"] .stat-v', prog);
+    set('[data-stat-filter="atrasadas"] .stat-v', atr);
+  }
+
+  // ─── filtragem ───
+  function aplicarFiltros(f: Filtros) {
+    const today = hojeISO();
+    const term = f.search.trim().toLowerCase();
+
+    document.querySelectorAll<HTMLElement>(".task").forEach((t) => {
+      const status = t.dataset.status as Status;
+      const responsavel = t.dataset.responsavel || "";
+      const projeto = t.dataset.projeto || "";
+      const prazo = t.dataset.prazo || "";
+      const urgencia = t.dataset.prazoUrgencia || "";
+      const prioridade = t.dataset.prioridade || "normal";
+      const atrasada = t.dataset.atrasada === "1";
+      const blob = t.dataset.search || "";
+
+      let hide = false;
+
+      if (f.esconderFeitas && status === "feita") hide = true;
+      if (f.soAtrasadas && !atrasada) hide = true;
+      if (f.responsavel && responsavel !== f.responsavel) hide = true;
+      if (f.projeto && projeto !== f.projeto) hide = true;
+
+      // chips
+      if (f.chip === "hoje" && urgencia !== "hoje") hide = true;
+      if (f.chip === "atrasadas" && !atrasada) hide = true;
+      if (f.chip === "esta-semana") {
+        if (!prazo || !semanasISO(prazo) || status === "feita") hide = true;
+      }
+      if (f.chip === "sem-prazo" && prazo) hide = true;
+      if (f.chip === "alta" && prioridade !== "alta") hide = true;
+
+      // stat filter (vindo de click em stat card)
+      if (f.statFilter === "pendente"     && status !== "pendente")     hide = true;
+      if (f.statFilter === "em-progresso" && status !== "em-progresso") hide = true;
+      if (f.statFilter === "atrasadas"    && !atrasada)                  hide = true;
+
+      t.dataset.hidden = hide ? "1" : "0";
+
+      // search é independente (não afeta contagem global de stats)
+      const matchSearch = !term || blob.includes(term);
+      t.dataset.hiddenSearch = matchSearch ? "0" : "1";
+    });
+
+    atualizarContagens();
+  }
+
+  // ─── ordenação ───
+  function aplicarSort(sort: SortMode) {
+    const ordem: Record<string, number> = { "alta": 0, "normal": 1 };
+    document.querySelectorAll<HTMLElement>(".task-group-grid").forEach((grid) => {
+      const tasks = Array.from(grid.querySelectorAll<HTMLElement>(".task"));
+      tasks.sort((a, b) => {
+        if (sort === "alpha") return (a.dataset.titulo || "").localeCompare(b.dataset.titulo || "", "pt-BR");
+        if (sort === "projeto") return (a.dataset.projeto || "").localeCompare(b.dataset.projeto || "");
+        if (sort === "prioridade") {
+          const pa = ordem[a.dataset.prioridade || "normal"];
+          const pb = ordem[b.dataset.prioridade || "normal"];
+          if (pa !== pb) return pa - pb;
+        }
+        if (sort === "prazo-asc" || sort === "prazo-desc") {
+          const pa = a.dataset.prazo || "";
+          const pb = b.dataset.prazo || "";
+          if (!pa && !pb) return 0;
+          if (!pa) return 1;
+          if (!pb) return -1;
+          return sort === "prazo-asc" ? pa.localeCompare(pb) : pb.localeCompare(pa);
+        }
+        // default: prioridade → prazo asc → alpha
+        const pa = ordem[a.dataset.prioridade || "normal"];
+        const pb = ordem[b.dataset.prioridade || "normal"];
+        if (pa !== pb) return pa - pb;
+        const ra = a.dataset.prazo || "";
+        const rb = b.dataset.prazo || "";
+        if (ra && rb) return ra.localeCompare(rb);
+        if (ra) return -1;
+        if (rb) return 1;
+        return (a.dataset.titulo || "").localeCompare(b.dataset.titulo || "", "pt-BR");
+      });
+      tasks.forEach((t) => grid.appendChild(t));
+    });
+  }
+
+  // ─── view ───
+  function aplicarView(v: "lista" | "kanban") {
+    const canvas = document.querySelector<HTMLElement>(".task-canvas");
+    if (canvas) canvas.dataset.view = v;
+    document.querySelectorAll<HTMLElement>(".vt-btn").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+  }
+
+  // ─── chips visual sync ───
+  function syncChips(f: Filtros) {
+    document.querySelectorAll<HTMLButtonElement>(".chip").forEach((b) => {
+      const on = b.dataset.chip === f.chip;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    document.querySelectorAll<HTMLButtonElement>(".stat-card").forEach((b) => {
+      const on = b.dataset.statFilter === f.statFilter && f.statFilter !== "";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  // ─── ações ───
+  function ciclarStatus(el: HTMLElement) {
+    const cur = el.dataset.status as Status;
+    const next: Status = cur === "pendente" ? "em-progresso" : cur === "em-progresso" ? "feita" : "pendente";
+    setStatusTask(el, next);
+  }
+  function setStatusTask(el: HTMLElement, status: Status) {
+    const id = el.dataset.id!;
+    el.dataset.status = status;
+    el.classList.remove("task-pendente", "task-em-progresso", "task-feita");
+    el.classList.add(`task-${status}`);
+    const map = lerOverrides();
+    const orig = el.dataset.statusOriginal;
+    if (orig === status) {
+      delete map[id];
+    } else {
+      map[id] = { ...(map[id] || {}), status, doneAt: status === "feita" ? new Date().toISOString() : undefined };
+    }
+    salvarOverrides(map);
+    reagruparPorStatus();
+    aplicarFiltros(lerFiltros());
+    atualizarStats();
+
+    const titulo = el.dataset.titulo || "tarefa";
+    const labels: Record<Status, { txt: string; tone: string }> = {
+      "pendente": { txt: `↩ ${titulo} voltou pra pendente`, tone: "info" },
+      "em-progresso": { txt: `▶ ${titulo} marcada como em progresso`, tone: "info" },
+      "feita": { txt: `✓ ${titulo} concluída`, tone: "success" },
+    };
+    toast(labels[status].txt, labels[status].tone, () => setStatusTask(el, orig as Status));
+  }
+
+  function snoozeTask(el: HTMLElement, days: number) {
+    const id = el.dataset.id!;
+    const map = lerOverrides();
+    map[id] = { ...(map[id] || {}), snoozeDays: (map[id]?.snoozeDays || 0) + days };
+    salvarOverrides(map);
+    // efeito visual: atualiza pill se possível
+    const prazoOrig = el.dataset.prazo;
+    if (prazoOrig) {
+      const novo = new Date(prazoOrig + "T00:00:00");
+      novo.setDate(novo.getDate() + (map[id].snoozeDays || 0));
+      const novoISO = `${novo.getUTCFullYear()}-${String(novo.getUTCMonth()+1).padStart(2,"0")}-${String(novo.getUTCDate()).padStart(2,"0")}`;
+      el.dataset.prazo = novoISO;
+      const dias = diasEntre(novoISO, hojeISO());
+      let urgencia = "futuro";
+      if (dias < 0) urgencia = "atrasada";
+      else if (dias === 0) urgencia = "hoje";
+      else if (dias === 1) urgencia = "amanha";
+      else if (dias <= 7) urgencia = "proxima-semana";
+      el.dataset.prazoUrgencia = urgencia;
+      el.dataset.atrasada = urgencia === "atrasada" ? "1" : "0";
+      const pill = el.querySelector<HTMLElement>(".prazo-pill");
+      if (pill) {
+        pill.classList.remove("u-atrasada", "u-hoje", "u-amanha", "u-proxima-semana", "u-futuro");
+        pill.classList.add(`u-${urgencia}`);
+        const lbl = pill.querySelector<HTMLElement>(".prazo-label");
+        if (lbl) {
+          if (dias < 0) lbl.textContent = `atrasada · ${Math.abs(dias)} dias`;
+          else if (dias === 0) lbl.textContent = "hoje";
+          else if (dias === 1) lbl.textContent = "amanhã";
+          else lbl.textContent = `em ${dias} dias`;
+        }
       }
     }
-    function salvar(f: Filtros) { sessionStorage.setItem(storageKey, JSON.stringify(f)); }
+    toast(`⏰ ${el.dataset.titulo} adiada +${days}d`, "info");
+    aplicarFiltros(lerFiltros());
+    atualizarStats();
+  }
 
-    function aplicar(f: Filtros) {
-      document.querySelectorAll<HTMLElement>(".task").forEach((t) => {
-        const status = t.dataset.status;
-        const responsavel = t.dataset.responsavel;
-        const atrasada = t.dataset.atrasada === "1";
-        // Para projeto, precisamos achar o link interno do TaskItem
-        const projetoLink = t.querySelector<HTMLAnchorElement>("a.proj-pill");
-        const projetoId = projetoLink?.getAttribute("href")?.split("/").pop() ?? "";
-        let hide = false;
-        if (f.esconderFeitas && status === "feita") hide = true;
-        if (f.soAtrasadas && !atrasada) hide = true;
-        if (f.responsavel && responsavel !== f.responsavel) hide = true;
-        if (f.projeto && projetoId !== f.projeto) hide = true;
-        t.dataset.hidden = hide ? "1" : "0";
-      });
-      document.querySelectorAll<HTMLElement>(".task-group").forEach((g) => {
-        const visible = g.querySelectorAll<HTMLElement>('.task[data-hidden="0"]').length;
-        const countEl = g.querySelector<HTMLElement>(".task-group-count");
-        if (countEl) countEl.textContent = String(visible);
-        g.dataset.empty = visible === 0 ? "1" : "0";
-      });
+  async function copyLink(el: HTMLElement) {
+    const id = el.dataset.id!;
+    const url = `${location.origin}${location.pathname}#${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("🔗 Link copiado", "success");
+    } catch {
+      toast("Não consegui copiar (permissão).", "danger");
+    }
+  }
+
+  function toggleExpand(el: HTMLElement) {
+    const ex = el.dataset.expanded === "1";
+    el.dataset.expanded = ex ? "0" : "1";
+  }
+
+  // ─── toast queue ───
+  function toast(text: string, tone: string = "", onUndo?: () => void) {
+    const host = document.querySelector(".toast-host");
+    if (!host) return;
+    const t = document.createElement("div");
+    t.className = "toast" + (tone ? " " + tone : "");
+    const span = document.createElement("span");
+    span.textContent = text;
+    t.appendChild(span);
+    if (onUndo) {
+      const btn = document.createElement("button");
+      btn.textContent = "desfazer";
+      btn.addEventListener("click", () => { onUndo(); t.remove(); });
+      t.appendChild(btn);
+    }
+    host.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // ─── focus tracking pra atalhos j/k ───
+  let focusedTask: HTMLElement | null = null;
+  function setFocused(el: HTMLElement | null) {
+    if (focusedTask) focusedTask.style.removeProperty("box-shadow");
+    focusedTask = el;
+    if (el) {
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+  function visiveis(): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>(".task"))
+      .filter((t) => t.dataset.hidden === "0" && t.dataset.hiddenSearch === "0");
+  }
+
+  // ─── help ───
+  function showHelp(show: boolean) {
+    const h = document.querySelector<HTMLElement>(".help-overlay");
+    if (!h) return;
+    h.toggleAttribute("hidden", !show);
+  }
+
+  // ─── inicialização ───
+  function init() {
+    const wrap = document.querySelector<HTMLElement>(".tarefas-globais");
+    if (!wrap) return;
+
+    // overrides → DOM
+    aplicarOverridesNoDOM();
+
+    let f = lerFiltros();
+
+    // Sync UI inputs
+    const $search = wrap.querySelector<HTMLInputElement>('[data-filtro="search"]');
+    const $cbFeitas = wrap.querySelector<HTMLInputElement>('[data-filtro="esconder-feitas"]');
+    const $cbAtras = wrap.querySelector<HTMLInputElement>('[data-filtro="so-atrasadas"]');
+    const $resp = wrap.querySelector<HTMLSelectElement>('[data-filtro="responsavel"]');
+    const $proj = wrap.querySelector<HTMLSelectElement>('[data-filtro="projeto"]');
+    const $sort = wrap.querySelector<HTMLSelectElement>('[data-filtro="sort"]');
+
+    if ($search) $search.value = f.search;
+    if ($cbFeitas) $cbFeitas.checked = f.esconderFeitas;
+    if ($cbAtras) $cbAtras.checked = f.soAtrasadas;
+    if ($resp) $resp.value = f.responsavel;
+    if ($proj) $proj.value = f.projeto;
+    if ($sort) $sort.value = f.sort;
+
+    aplicarSort(f.sort);
+    aplicarFiltros(f);
+    syncChips(f);
+    aplicarView(lerView());
+
+    function commit(part: Partial<Filtros>) {
+      f = { ...f, ...part };
+      salvarFiltros(f);
+      aplicarFiltros(f);
+      syncChips(f);
     }
 
-    function bind() {
-      const f = ler();
-      inputs.forEach((el) => {
-        const filtro = el.dataset.filtro;
-        if (filtro === "esconder-feitas" && el instanceof HTMLInputElement) {
-          el.checked = f.esconderFeitas;
-          el.addEventListener("change", () => { const c = ler(); c.esconderFeitas = el.checked; salvar(c); aplicar(c); });
-        } else if (filtro === "so-atrasadas" && el instanceof HTMLInputElement) {
-          el.checked = f.soAtrasadas;
-          el.addEventListener("change", () => { const c = ler(); c.soAtrasadas = el.checked; salvar(c); aplicar(c); });
-        } else if (filtro === "responsavel" && el instanceof HTMLSelectElement) {
-          el.value = f.responsavel;
-          el.addEventListener("change", () => { const c = ler(); c.responsavel = el.value; salvar(c); aplicar(c); });
-        } else if (filtro === "projeto" && el instanceof HTMLSelectElement) {
-          el.value = f.projeto;
-          el.addEventListener("change", () => { const c = ler(); c.projeto = el.value; salvar(c); aplicar(c); });
-        } else if (filtro === "reset" && el instanceof HTMLButtonElement) {
-          el.addEventListener("click", () => {
-            sessionStorage.removeItem(storageKey);
-            inputs.forEach((x) => {
-              if (x instanceof HTMLInputElement) x.checked = false;
-              else if (x instanceof HTMLSelectElement) x.value = "";
-            });
-            aplicar({ ...padrao });
-          });
-        }
-      });
-      aplicar(f);
-    }
-    bind();
+    // listeners filtros
+    $search?.addEventListener("input", () => commit({ search: $search.value }));
+    $cbFeitas?.addEventListener("change", () => commit({ esconderFeitas: $cbFeitas.checked }));
+    $cbAtras?.addEventListener("change", () => commit({ soAtrasadas: $cbAtras.checked }));
+    $resp?.addEventListener("change", () => commit({ responsavel: $resp.value }));
+    $proj?.addEventListener("change", () => commit({ projeto: $proj.value }));
+    $sort?.addEventListener("change", () => {
+      aplicarSort($sort.value as SortMode);
+      commit({ sort: $sort.value as SortMode });
+    });
 
-    // Botão "Filtrar só atrasadas" (no banner de alerta)
+    // chips
+    document.querySelectorAll<HTMLButtonElement>(".chip").forEach((b) => {
+      b.addEventListener("click", () => {
+        const c = b.dataset.chip!;
+        commit({ chip: f.chip === c ? "" : c });
+      });
+    });
+
+    // stat cards
+    document.querySelectorAll<HTMLButtonElement>(".stat-card").forEach((b) => {
+      b.addEventListener("click", () => {
+        const s = b.dataset.statFilter!;
+        if (s === "todas") commit({ statFilter: "" });
+        else commit({ statFilter: f.statFilter === s ? "" : s });
+      });
+    });
+
+    // view toggle
+    document.querySelectorAll<HTMLButtonElement>(".vt-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        const v = b.dataset.view as "lista" | "kanban";
+        salvarView(v);
+        aplicarView(v);
+      });
+    });
+
+    // reset
+    wrap.querySelectorAll<HTMLElement>('[data-filtro="reset"]').forEach((b) => {
+      b.addEventListener("click", () => {
+        sessionStorage.removeItem(STORAGE.filtros);
+        f = { ...padrao };
+        if ($search) $search.value = "";
+        if ($cbFeitas) $cbFeitas.checked = padrao.esconderFeitas;
+        if ($cbAtras) $cbAtras.checked = padrao.soAtrasadas;
+        if ($resp) $resp.value = "";
+        if ($proj) $proj.value = "";
+        if ($sort) $sort.value = padrao.sort;
+        aplicarSort(padrao.sort);
+        aplicarFiltros(f);
+        syncChips(f);
+        toast("Filtros limpos", "info");
+      });
+    });
+
+    // Botão "Filtrar só atrasadas" no banner
     document.querySelectorAll<HTMLButtonElement>("[data-filtro-quick]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const tipo = btn.dataset.filtroQuick;
-        if (tipo === "so-atrasadas") {
-          const cur = ler();
-          cur.soAtrasadas = true;
-          cur.esconderFeitas = true;
-          salvar(cur);
-          const cb1 = wrap.querySelector<HTMLInputElement>('[data-filtro="so-atrasadas"]');
-          const cb2 = wrap.querySelector<HTMLInputElement>('[data-filtro="esconder-feitas"]');
-          if (cb1) cb1.checked = true;
-          if (cb2) cb2.checked = true;
-          aplicar(cur);
+        if (btn.dataset.filtroQuick === "so-atrasadas") {
+          if ($cbAtras) $cbAtras.checked = true;
+          commit({ soAtrasadas: true });
           wrap.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
     });
+
+    // ─── click handlers nos task items ───
+    document.addEventListener("click", (ev) => {
+      const target = ev.target as HTMLElement;
+
+      // Help
+      const helpBtn = target.closest('[data-action="show-help"]');
+      if (helpBtn) { showHelp(true); return; }
+      const closeBtn = target.closest('[data-action="close-help"]');
+      if (closeBtn) { showHelp(false); return; }
+      if (target.classList.contains("help-overlay")) { showHelp(false); return; }
+
+      // Não interferir com pills de projeto / links / botões internos com data-no-expand
+      const noExpand = target.closest("[data-no-expand]");
+      if (noExpand) return;
+
+      const task = target.closest<HTMLElement>(".task");
+      if (!task) return;
+
+      const actionEl = target.closest<HTMLElement>("[data-action]");
+      const action = actionEl?.dataset.action;
+
+      if (action === "cycle-status") {
+        ev.stopPropagation();
+        ciclarStatus(task);
+        return;
+      }
+      if (action === "set-status") {
+        ev.stopPropagation();
+        setStatusTask(task, actionEl!.dataset.status as Status);
+        return;
+      }
+      if (action === "snooze") {
+        ev.stopPropagation();
+        snoozeTask(task, parseInt(actionEl!.dataset.days || "1", 10));
+        return;
+      }
+      if (action === "copy-link") {
+        ev.stopPropagation();
+        copyLink(task);
+        return;
+      }
+      if (action === "toggle-expand") {
+        ev.stopPropagation();
+        toggleExpand(task);
+        return;
+      }
+
+      // click no body → expand
+      toggleExpand(task);
+      setFocused(task);
+    });
+
+    // focus visual em tasks
+    document.querySelectorAll<HTMLElement>(".task").forEach((t) => {
+      t.addEventListener("focus", () => { focusedTask = t; });
+    });
+
+    // ─── keyboard shortcuts ───
+    let gPending = false;
+    let gTimer: number | null = null;
+
+    document.addEventListener("keydown", (ev) => {
+      const tag = (ev.target as HTMLElement)?.tagName;
+      const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const overlay = document.querySelector<HTMLElement>(".help-overlay:not([hidden])");
+
+      if (ev.key === "Escape") {
+        if (overlay) { showHelp(false); ev.preventDefault(); return; }
+        if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === "search") {
+          document.activeElement.blur();
+          ev.preventDefault();
+          return;
+        }
+        return;
+      }
+
+      if (overlay) return;
+
+      if (ev.key === "/" && !inInput) {
+        ev.preventDefault();
+        $search?.focus();
+        $search?.select();
+        return;
+      }
+
+      if (inInput) return;
+
+      if (ev.key === "?") { showHelp(true); ev.preventDefault(); return; }
+
+      if (ev.key === "g") {
+        gPending = true;
+        if (gTimer) clearTimeout(gTimer);
+        gTimer = window.setTimeout(() => { gPending = false; }, 800);
+        return;
+      }
+      if (gPending) {
+        gPending = false;
+        if (ev.key === "h") {
+          const chip = document.querySelector<HTMLButtonElement>('.chip[data-chip="hoje"]');
+          chip?.click();
+          ev.preventDefault();
+          return;
+        }
+        if (ev.key === "a") {
+          const chip = document.querySelector<HTMLButtonElement>('.chip[data-chip="atrasadas"]');
+          chip?.click();
+          ev.preventDefault();
+          return;
+        }
+      }
+
+      if (ev.key === "1") { aplicarView("lista"); salvarView("lista"); ev.preventDefault(); return; }
+      if (ev.key === "2") { aplicarView("kanban"); salvarView("kanban"); ev.preventDefault(); return; }
+      if (ev.key === "r") {
+        wrap.querySelector<HTMLElement>('[data-filtro="reset"]')?.click();
+        ev.preventDefault();
+        return;
+      }
+
+      if (ev.key === "j" || ev.key === "k") {
+        const list = visiveis();
+        if (list.length === 0) return;
+        const idx = focusedTask ? list.indexOf(focusedTask) : -1;
+        const next = ev.key === "j"
+          ? list[Math.min(idx + 1, list.length - 1)] || list[0]
+          : list[Math.max(idx - 1, 0)] || list[0];
+        setFocused(next);
+        ev.preventDefault();
+        return;
+      }
+
+      if (ev.key === "x" && focusedTask) {
+        const cur = focusedTask.dataset.status as Status;
+        setStatusTask(focusedTask, cur === "feita" ? "pendente" : "feita");
+        ev.preventDefault();
+        return;
+      }
+
+      if (ev.key === "e" && focusedTask) {
+        toggleExpand(focusedTask);
+        ev.preventDefault();
+        return;
+      }
+    });
+
+    // hash deep-link
+    if (location.hash) {
+      const id = location.hash.replace(/^#/, "");
+      const el = document.querySelector<HTMLElement>(`.task[data-id="${id}"]`);
+      if (el) {
+        el.dataset.expanded = "1";
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+        setFocused(el);
+      }
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
   }
 </script>

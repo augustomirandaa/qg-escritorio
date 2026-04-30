@@ -1,11 +1,20 @@
 ---
 import type { Tarefa } from "../data/types";
 import { pessoaById } from "../data/pessoas";
+import { AGENTES } from "../data/agentes";
 import { formatarPrazo, hojeISO } from "../data/tarefa-utils";
 
-interface Props { tarefa: Tarefa; projetoLabel?: string; projetoHref?: string; }
-const { tarefa, projetoLabel, projetoHref } = Astro.props;
+interface Props {
+  tarefa: Tarefa;
+  taskId: string;
+  projetoLabel?: string;
+  projetoHref?: string;
+  projetoId?: string;
+}
+const { tarefa, taskId, projetoLabel, projetoHref, projetoId } = Astro.props;
+
 const pessoa = pessoaById(tarefa.responsavelId);
+const agente = !pessoa ? AGENTES.find((a) => a.id === tarefa.responsavelId) : undefined;
 
 const statusLabel = {
   "pendente": "pendente",
@@ -21,27 +30,51 @@ const statusClass = {
 
 const prazoFmt = tarefa.status !== "feita" ? formatarPrazo(tarefa.prazo, hojeISO()) : null;
 const isAlta = tarefa.prioridade === "alta";
+
+// Texto único pra busca (lowercase no client)
+const searchBlob = [
+  tarefa.titulo,
+  tarefa.porQue ?? "",
+  tarefa.notas ?? "",
+  pessoa?.nome ?? "",
+  agente?.nome ?? "",
+  projetoLabel ?? "",
+].join(" ").toLowerCase();
 ---
 
-<div
+<article
   class:list={["task", `task-${tarefa.status}`]}
+  data-id={taskId}
   data-status={tarefa.status}
+  data-status-original={tarefa.status}
   data-responsavel={tarefa.responsavelId}
+  data-projeto={projetoId ?? ""}
+  data-prazo={tarefa.prazo ?? ""}
+  data-prazo-urgencia={prazoFmt?.urgencia ?? ""}
+  data-prioridade={tarefa.prioridade ?? "normal"}
   data-atrasada={prazoFmt?.urgencia === "atrasada" ? "1" : "0"}
+  data-search={searchBlob}
+  data-titulo={tarefa.titulo}
+  tabindex="0"
+  role="article"
+  aria-label={`Tarefa: ${tarefa.titulo}`}
 >
-  <div class="flex items-start gap-2.5">
-    <div class="checkbox" aria-hidden="true">
-      {tarefa.status === "feita" && (
-        <svg viewBox="0 0 14 14" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="2,7 6,11 12,3"></polyline>
-        </svg>
-      )}
-      {tarefa.status === "em-progresso" && (
-        <span class="dot-progress"></span>
-      )}
-    </div>
-    <div class="flex-1 min-w-0">
-      <div class="flex items-start gap-1.5">
+  <div class="task-row">
+    <button
+      type="button"
+      class="checkbox"
+      data-action="cycle-status"
+      title="Click pra ciclar status (pendente → em progresso → feita)"
+      aria-label="Mudar status"
+    >
+      <svg class="icon-check" viewBox="0 0 14 14" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="2,7 6,11 12,3"></polyline>
+      </svg>
+      <span class="dot-progress"></span>
+    </button>
+
+    <div class="task-body">
+      <div class="task-title-row">
         {isAlta && (
           <span class="prio-flag" title="Alta prioridade" aria-label="Alta prioridade">
             <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
@@ -49,36 +82,40 @@ const isAlta = tarefa.prioridade === "alta";
             </svg>
           </span>
         )}
-        <div class:list={["text-[13px] font-medium leading-snug flex-1", tarefa.status === "feita" && "line-through text-faint"]}>{tarefa.titulo}</div>
+        <h3 class="task-title">{tarefa.titulo}</h3>
+        <button type="button" class="expand-btn" data-action="toggle-expand" aria-label="Expandir detalhes" title="Expandir detalhes (E)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
       </div>
-      {tarefa.porQue && (
-        <div class="por-que mt-1.5">
-          <span class="por-que-label">por quê</span>
-          <span class="por-que-text">{tarefa.porQue}</span>
-        </div>
-      )}
-      {tarefa.notas && <p class="text-[11px] text-soft leading-snug mt-1.5 m-0">{tarefa.notas}</p>}
-      <div class="flex items-center gap-2 mt-2 flex-wrap">
+
+      <div class="task-meta">
         {pessoa ? (
           <span class="resp-pill">
             <span class:list={["av-mini", `t-${pessoa.tipo}`]}>{pessoa.iniciais}</span>
-            <span class="text-[11px] text-soft">{pessoa.nome}</span>
+            <span class="text-[11px] text-soft">{pessoa.nome.split(" ")[0]}</span>
+          </span>
+        ) : agente ? (
+          <span class="resp-pill resp-agente" title={`Agente: ${agente.nome}`}>
+            <span class="av-mini t-agente">⚡</span>
+            <span class="text-[11px] text-soft">{agente.nome}</span>
           </span>
         ) : (
           <span class="text-[11px] text-faint italic">sem responsável</span>
         )}
-        <span class={`status-badge ${statusClass}`}>{statusLabel}</span>
+        <span class={`status-badge ${statusClass} status-pill`}>{statusLabel}</span>
         {prazoFmt && (
           <span class:list={["prazo-pill", `u-${prazoFmt.urgencia}`]} title={tarefa.prazo}>
             <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="9"/>
               <polyline points="12 7 12 12 15.5 14"/>
             </svg>
-            {prazoFmt.label}
+            <span class="prazo-label">{prazoFmt.label}</span>
           </span>
         )}
         {projetoLabel && projetoHref && (
-          <a href={projetoHref} class="proj-pill">
+          <a href={projetoHref} class="proj-pill" data-no-expand>
             <span class="text-[10px] text-faint mr-0.5">em</span>
             <span class="font-medium">{projetoLabel}</span>
           </a>
@@ -86,7 +123,54 @@ const isAlta = tarefa.prioridade === "alta";
       </div>
     </div>
   </div>
-</div>
+
+  <div class="task-detail">
+    {tarefa.porQue && (
+      <div class="por-que">
+        <span class="por-que-label">por quê</span>
+        <span class="por-que-text">{tarefa.porQue}</span>
+      </div>
+    )}
+    {tarefa.notas && <p class="task-notas">{tarefa.notas}</p>}
+
+    <div class="task-actions">
+      <button type="button" class="ta-btn ta-start" data-action="set-status" data-status="em-progresso" title="Começar (J)">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Começar
+      </button>
+      <button type="button" class="ta-btn ta-done" data-action="set-status" data-status="feita" title="Concluir (X)">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Concluir
+      </button>
+      <button type="button" class="ta-btn ta-undo" data-action="set-status" data-status="pendente" title="Voltar pra pendente">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg>
+        Pendente
+      </button>
+
+      <span class="ta-divider"></span>
+
+      <span class="ta-snooze-group" title="Adiar prazo (override visual)">
+        <span class="ta-snooze-lbl">Adiar</span>
+        <button type="button" class="ta-btn ta-snooze" data-action="snooze" data-days="1">+1d</button>
+        <button type="button" class="ta-btn ta-snooze" data-action="snooze" data-days="3">+3d</button>
+        <button type="button" class="ta-btn ta-snooze" data-action="snooze" data-days="7">+7d</button>
+      </span>
+
+      <span class="ta-divider"></span>
+
+      <button type="button" class="ta-btn ta-link" data-action="copy-link" title="Copiar link da tarefa">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        Copiar link
+      </button>
+
+      {tarefa.prazo && (
+        <span class="ta-prazo-info" title={`Prazo no arquivo: ${tarefa.prazo}`}>
+          prazo · {tarefa.prazo}
+        </span>
+      )}
+    </div>
+  </div>
+</article>
 
 <style>
   .task {
@@ -94,14 +178,37 @@ const isAlta = tarefa.prioridade === "alta";
     background: var(--color-muted);
     border-radius: 8px;
     border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  .task:hover {
+    background: color-mix(in srgb, var(--color-muted) 85%, var(--color-surface));
+  }
+  .task:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-info-border);
+  }
+  .task[data-flash="1"] {
+    animation: flashTask 0.6s ease-out;
+  }
+  @keyframes flashTask {
+    0%   { background: var(--color-info-bg); transform: scale(1.01); }
+    100% { background: var(--color-muted); transform: scale(1); }
   }
   .task-pendente { border-left-color: var(--color-faint); }
   .task-em-progresso { border-left-color: var(--color-info-border); }
   .task-feita { border-left-color: var(--color-success-text); opacity: 0.65; }
+  .task-feita .task-title { text-decoration: line-through; color: var(--color-faint); }
+
+  .task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
 
   .checkbox {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border: 1.5px solid var(--color-faint);
     border-radius: 50%;
     flex-shrink: 0;
@@ -110,21 +217,80 @@ const isAlta = tarefa.prioridade === "alta";
     align-items: center;
     justify-content: center;
     color: var(--color-success-text);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .checkbox:hover {
+    border-color: var(--color-success-text);
+    background: var(--color-surface);
+    transform: scale(1.1);
+  }
+  .checkbox:active { transform: scale(0.95); }
+  .checkbox .icon-check { display: none; }
+  .checkbox .dot-progress {
+    display: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-info-border);
   }
   .task-feita .checkbox {
     background: var(--color-success-text);
     border-color: var(--color-success-text);
     color: #fff;
   }
+  .task-feita .checkbox .icon-check { display: block; }
   .task-em-progresso .checkbox {
     border-color: var(--color-info-border);
     border-style: dashed;
   }
-  .dot-progress {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-info-border);
+  .task-em-progresso .checkbox .dot-progress { display: block; }
+
+  .task-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .task-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .task-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+    flex: 1;
+    color: var(--color-base);
+  }
+
+  .expand-btn {
+    background: transparent;
+    border: 0;
+    color: var(--color-faint);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: -1px;
+    opacity: 0;
+    transition: all 0.15s;
+  }
+  .task:hover .expand-btn,
+  .task[data-expanded="1"] .expand-btn { opacity: 1; }
+  .expand-btn:hover { background: var(--color-surface); color: var(--color-base); }
+  .expand-btn svg { transition: transform 0.2s; }
+  .task[data-expanded="1"] .expand-btn svg { transform: rotate(180deg); }
+
+  .task-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 7px;
+    flex-wrap: wrap;
   }
 
   .resp-pill {
@@ -136,6 +302,8 @@ const isAlta = tarefa.prioridade === "alta";
     border-radius: 999px;
     border: 0.5px solid var(--color-line);
   }
+  .resp-pill.resp-agente { background: #1a1a18; color: #fff; border-color: transparent; }
+  .resp-pill.resp-agente .text-soft { color: rgba(255,255,255,.78); }
   .av-mini {
     width: 18px;
     height: 18px;
@@ -147,33 +315,12 @@ const isAlta = tarefa.prioridade === "alta";
     font-weight: 500;
     color: #fff;
   }
-  .av-mini.t-socio { background: var(--color-avatar-socio); }
-  .av-mini.t-hibrida { background: var(--color-avatar-hibrida); }
+  .av-mini.t-socio    { background: var(--color-avatar-socio); }
+  .av-mini.t-hibrida  { background: var(--color-avatar-hibrida); }
   .av-mini.t-executor { background: var(--color-avatar-executor); }
-  .av-mini.t-network { background: var(--color-avatar-network); }
-  .av-mini.t-cliente { background: var(--color-avatar-cliente); }
-
-  .por-que {
-    display: block;
-    padding: 6px 9px;
-    background: var(--color-surface);
-    border-left: 2px solid var(--color-info-border);
-    border-radius: 0 4px 4px 0;
-    font-size: 11px;
-    color: var(--color-soft);
-    line-height: 1.45;
-  }
-  .por-que-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--color-info-text);
-    font-weight: 500;
-    margin-right: 6px;
-  }
-  .por-que-text {
-    color: var(--color-base);
-  }
+  .av-mini.t-network  { background: var(--color-avatar-network); }
+  .av-mini.t-cliente  { background: var(--color-avatar-cliente); }
+  .av-mini.t-agente   { background: rgba(255,255,255,.18); color: #fff; font-size: 11px; }
 
   .prio-flag {
     display: inline-flex;
@@ -204,18 +351,9 @@ const isAlta = tarefa.prioridade === "alta";
     color: var(--color-warning-text);
     font-weight: 600;
   }
-  .prazo-pill.u-amanha {
-    background: var(--color-warning-bg);
-    color: var(--color-warning-text);
-  }
-  .prazo-pill.u-proxima-semana {
-    background: var(--color-muted);
-    color: var(--color-base);
-  }
-  .prazo-pill.u-futuro {
-    background: var(--color-muted);
-    color: var(--color-faint);
-  }
+  .prazo-pill.u-amanha          { background: var(--color-warning-bg); color: var(--color-warning-text); }
+  .prazo-pill.u-proxima-semana  { background: var(--color-muted); color: var(--color-base); }
+  .prazo-pill.u-futuro          { background: var(--color-muted); color: var(--color-faint); }
 
   .proj-pill {
     display: inline-flex;
@@ -230,5 +368,113 @@ const isAlta = tarefa.prioridade === "alta";
     text-decoration: none;
     transition: background 0.15s;
   }
-  .proj-pill:hover { background: var(--color-muted); }
+  .proj-pill:hover { background: var(--color-info-bg); color: var(--color-info-text); }
+
+  .status-pill { font-size: 10px; padding: 2px 8px; }
+
+  /* === detalhe expandido === */
+  .task-detail {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--color-line);
+  }
+  .task[data-expanded="1"] .task-detail { display: block; animation: slideIn 0.2s ease-out; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .por-que {
+    display: block;
+    padding: 8px 10px;
+    background: var(--color-surface);
+    border-left: 2px solid var(--color-info-border);
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: var(--color-soft);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .por-que-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-info-text);
+    font-weight: 500;
+    margin-right: 6px;
+  }
+  .por-que-text { color: var(--color-base); }
+
+  .task-notas {
+    font-size: 11.5px;
+    color: var(--color-soft);
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+    padding: 6px 10px;
+    background: var(--color-surface);
+    border-radius: 6px;
+  }
+
+  .task-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+  .ta-btn {
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 0.5px solid var(--color-line-strong);
+    background: var(--color-surface);
+    color: var(--color-base);
+    cursor: pointer;
+    transition: all 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ta-btn:hover { background: var(--color-info-bg); color: var(--color-info-text); border-color: var(--color-info-border); }
+  .ta-btn:active { transform: scale(0.97); }
+  .ta-btn.ta-done { background: var(--color-success-text); color: #fff; border-color: var(--color-success-text); }
+  .ta-btn.ta-done:hover { filter: brightness(1.08); background: var(--color-success-text); color: #fff; }
+  .ta-btn.ta-start { background: var(--color-info-border); color: #fff; border-color: var(--color-info-border); }
+  .ta-btn.ta-start:hover { filter: brightness(1.08); background: var(--color-info-border); color: #fff; }
+
+  /* botão contextual: esconder o que não faz sentido */
+  .task-pendente     .ta-undo { display: none; }
+  .task-em-progresso .ta-undo { display: none; }
+  .task-em-progresso .ta-start { display: none; }
+  .task-feita        .ta-start { display: none; }
+  .task-feita        .ta-done  { display: none; }
+
+  .ta-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--color-line);
+  }
+  .ta-snooze-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .ta-snooze-lbl {
+    font-size: 10px;
+    color: var(--color-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-right: 2px;
+  }
+  .ta-prazo-info {
+    font-size: 10px;
+    color: var(--color-faint);
+    margin-left: auto;
+  }
+
+  /* hidden por filtros */
+  .task[data-hidden="1"] { display: none; }
+  .task[data-hidden-search="1"] { display: none; }
 </style>

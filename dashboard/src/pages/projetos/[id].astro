@@ -303,7 +303,7 @@ const defaultTab = tabs[0]?.key ?? "tarefas";
                       <span>A fazer · <span class="task-group-count">{tarefasPendentes.length}</span></span>
                     </div>
                     <div class="grid grid-cols-1 gap-2 task-group-grid">
-                      {tarefasPendentes.map((t) => <TaskItem tarefa={t} />)}
+                      {tarefasPendentes.map((t) => <TaskItem tarefa={t} taskId={`${p.id}-${p.tarefas.indexOf(t)}`} projetoId={p.id} />)}
                     </div>
                   </div>
                 )}
@@ -315,7 +315,7 @@ const defaultTab = tabs[0]?.key ?? "tarefas";
                       <span>Em progresso · <span class="task-group-count">{tarefasProgresso.length}</span></span>
                     </div>
                     <div class="grid grid-cols-1 gap-2 task-group-grid">
-                      {tarefasProgresso.map((t) => <TaskItem tarefa={t} />)}
+                      {tarefasProgresso.map((t) => <TaskItem tarefa={t} taskId={`${p.id}-${p.tarefas.indexOf(t)}`} projetoId={p.id} />)}
                     </div>
                   </div>
                 )}
@@ -327,7 +327,7 @@ const defaultTab = tabs[0]?.key ?? "tarefas";
                       <span>Feitas · <span class="task-group-count">{tarefasFeitas.length}</span></span>
                     </div>
                     <div class="grid grid-cols-1 gap-2 task-group-grid">
-                      {tarefasFeitas.map((t) => <TaskItem tarefa={t} />)}
+                      {tarefasFeitas.map((t) => <TaskItem tarefa={t} taskId={`${p.id}-${p.tarefas.indexOf(t)}`} projetoId={p.id} />)}
                     </div>
                   </div>
                 )}
