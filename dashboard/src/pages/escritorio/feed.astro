@@ -1,0 +1,230 @@
+---
+import EscritorioBase from "../../layouts/EscritorioBase.astro";
+import AvatarTiny from "../../components/escritorio/AvatarTiny.astro";
+import { FEED, contagemPorTipo } from "../../data/feed";
+import { ORDEM_PROJETOS, META_PROJETOS } from "../../data/escritorio-meta";
+
+const grupos: Record<string, typeof FEED> = {};
+for (const item of FEED) {
+  const k = item.dayLabel;
+  (grupos[k] ||= []).push(item);
+}
+const ordemDias = Array.from(new Set(FEED.map((f) => f.dayLabel)));
+
+const contPorProjeto: Record<string, number> = {};
+for (const f of FEED) if (f.projectId) contPorProjeto[f.projectId] = (contPorProjeto[f.projectId] ?? 0) + 1;
+const contTipos = contagemPorTipo(FEED);
+
+function tagProjetoColor(id?: string) {
+  if (!id) return "";
+  return `tag-${id}`;
+}
+
+function dataAwait(awaitingFrom?: string[]) {
+  return awaitingFrom && awaitingFrom.length > 0 ? awaitingFrom.join(",") : "";
+}
+---
+
+<EscritorioBase
+  title="Stream · Timeline conversacional"
+  subtitle="Tudo que a operação faz vira post. Aprova, edita ou responde inline. Filtros laterais por projeto e tipo."
+>
+  <div class="st-grid">
+    <aside class="st-filters">
+      <h4>Projetos</h4>
+      <button type="button" class="st-filter on" data-proj="*">Todos <span class="count">{FEED.length}</span></button>
+      {ORDEM_PROJETOS.map((id) => (
+        <button type="button" class="st-filter" data-proj={id} data-projeto={id}>
+          {id} · {META_PROJETOS[id].apelido} <span class="count">{contPorProjeto[id] ?? 0}</span>
+        </button>
+      ))}
+
+      <h4 style="margin-top:14px">Tipo</h4>
+      <button type="button" class="st-filter on"  data-tipo="*">Todos</button>
+      <button type="button" class="st-filter"     data-tipo="decision">⚠ Decisão <span class="count">{contTipos.decision}</span></button>
+      <button type="button" class="st-filter"     data-tipo="agent_output">⚡ Output IA <span class="count">{contTipos.agent_output}</span></button>
+      <button type="button" class="st-filter"     data-tipo="human_action">👥 Humano <span class="count">{contTipos.human_action}</span></button>
+      <button type="button" class="st-filter"     data-tipo="financial">💰 Financeiro <span class="count">{contTipos.financial}</span></button>
+    </aside>
+
+    <div class="st-feed">
+      {ordemDias.map((dia) => (
+        <>
+          <div class="st-day">{dia}</div>
+          {grupos[dia].map((f) => (
+            <article
+              class:list={["st-msg", `t-${f.type}`]}
+              data-projeto={f.projectId ?? ""}
+              data-tipo={f.type}
+              data-await={dataAwait(f.awaitingFrom)}
+            >
+              <AvatarTiny
+                ownerId={f.authorId}
+                ownerKind={f.authorKind === "human" ? "human" : "agent"}
+                iniciais={f.authorLabel.slice(0, 2).toUpperCase()}
+                kind={f.authorAvatarKind}
+                size="tiny"
+              />
+              <div class="body">
+                <div class="top">
+                  <span class="name">{f.authorLabel}</span>
+                  {f.projectId && (
+                    <span class:list={["tag", tagProjetoColor(f.projectId)]}>{f.projectId} · {META_PROJETOS[f.projectId].apelido}</span>
+                  )}
+                  {f.priority === "critica" && <span class="tag tag-crit">⚠ crítica</span>}
+                  {f.awaitingLabel && <span class="tag tag-warn">{f.awaitingLabel}</span>}
+                  <span class="time">{f.timeLabel}</span>
+                </div>
+                <div class="text" set:html={f.text}></div>
+                {f.actions && f.actions.length > 0 && (
+                  <div class="actions">
+                    {f.actions.map((a) => (
+                      <button
+                        type="button"
+                        class:list={["st-actbtn", a.primary && "primary", a.danger && "danger"]}
+                        data-action={a.action}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </>
+      ))}
+    </div>
+  </div>
+</EscritorioBase>
+
+<style>
+  .st-grid { display: grid; grid-template-columns: 200px 1fr; gap: 14px; }
+  @media (max-width: 800px) { .st-grid { grid-template-columns: 1fr; } }
+
+  .st-filters {
+    padding: 12px 14px;
+    background: var(--color-muted);
+    border-radius: 10px;
+    height: fit-content;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .st-filters h4 {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--color-faint); margin: 0 0 8px;
+  }
+  .st-filter {
+    font-size: 12px; padding: 5px 8px; border-radius: 6px;
+    cursor: pointer; color: var(--color-soft);
+    display: flex; justify-content: space-between; align-items: center;
+    border: 0; background: transparent; text-align: left;
+    width: 100%;
+  }
+  .st-filter:hover { background: var(--color-surface); }
+  .st-filter.on { background: var(--color-base); color: #fff; }
+  .st-filter .count { font-size: 10.5px; opacity: .7; }
+
+  .st-feed {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 8px 0;
+  }
+  .st-day {
+    padding: 6px 16px;
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--color-faint);
+    background: var(--color-muted);
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .st-day:first-child { border-top: 0; }
+
+  .st-msg {
+    display: flex; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-line);
+    align-items: flex-start;
+  }
+  .st-msg:last-child { border-bottom: 0; }
+  .st-msg:hover { background: var(--color-muted); }
+  .st-msg[data-await]:not([data-await=""]) { background: #fff7e6; }
+
+  .st-msg .body { flex: 1; min-width: 0; }
+  .st-msg .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .st-msg .name { font-weight: 600; font-size: 13px; }
+  .st-msg .tag {
+    font-size: 10.5px; padding: 1px 6px; border-radius: 4px;
+    background: rgba(0,0,0,.05); color: var(--color-soft);
+  }
+  .st-msg .tag-crit { background: var(--color-danger-bg); color: var(--color-danger-text); }
+  .st-msg .tag-warn { background: var(--color-warning-bg); color: var(--color-warning-text); }
+  .st-msg .time { font-size: 11px; color: var(--color-faint); margin-left: auto; }
+  .st-msg .text { font-size: 13px; line-height: 1.45; color: var(--color-base); margin-top: 4px; }
+  .st-msg .text :global(b) { font-weight: 600; }
+  .st-msg .actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+  .st-actbtn {
+    font-size: 11px; padding: 4px 9px; border-radius: 6px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+  .st-actbtn.primary { background: var(--color-info-border); color: #fff; border-color: var(--color-info-border); }
+  .st-actbtn.danger  { color: var(--color-danger-text); border-color: rgba(220,38,38,.3); }
+  .st-actbtn[data-resolved] { opacity: .5; pointer-events: none; }
+</style>
+
+<script is:inline>
+  // filtros
+  const filters = document.querySelectorAll(".st-filter");
+  let estadoProj = "*";
+  let estadoTipo = "*";
+
+  function aplicarFiltros() {
+    document.querySelectorAll(".st-msg").forEach((msg) => {
+      const matchProj = estadoProj === "*" || msg.getAttribute("data-projeto") === estadoProj;
+      const matchTipo = estadoTipo === "*" || msg.getAttribute("data-tipo") === estadoTipo;
+      const ocultoPorPermissao = msg.hasAttribute("hidden") && msg.dataset._byPermission === "1";
+      if (matchProj && matchTipo) {
+        if (msg.dataset._byFilter === "1") msg.removeAttribute("hidden");
+        msg.dataset._byFilter = "0";
+      } else {
+        msg.setAttribute("hidden", "");
+        msg.dataset._byFilter = "1";
+      }
+    });
+  }
+
+  filters.forEach((b) => {
+    b.addEventListener("click", () => {
+      const proj = b.getAttribute("data-proj");
+      const tipo = b.getAttribute("data-tipo");
+      if (proj !== null) {
+        document.querySelectorAll('.st-filter[data-proj]').forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        estadoProj = proj;
+      }
+      if (tipo !== null) {
+        document.querySelectorAll('.st-filter[data-tipo]').forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        estadoTipo = tipo;
+      }
+      aplicarFiltros();
+    });
+  });
+
+  // ações inline
+  document.querySelectorAll(".st-msg .st-actbtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const action = btn.getAttribute("data-action");
+      console.log("[feed-action]", action);
+      const orig = btn.textContent;
+      btn.textContent = "✓ feito";
+      btn.setAttribute("data-resolved", "");
+      setTimeout(() => { btn.textContent = orig; btn.removeAttribute("data-resolved"); }, 2500);
+    });
+  });
+</script>
