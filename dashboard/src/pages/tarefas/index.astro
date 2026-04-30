@@ -1,0 +1,299 @@
+---
+import Base from "../../layouts/Base.astro";
+import TaskItem from "../../components/TaskItem.astro";
+import { PROJETOS, PROJETO_IDS } from "../../data/projetos";
+import { TODAS_PESSOAS } from "../../data/pessoas";
+import { ordenarTarefas, formatarPrazo, hojeISO } from "../../data/tarefa-utils";
+import type { Tarefa, ProjetoId } from "../../data/types";
+
+interface TarefaComProjeto extends Tarefa {
+  __projeto: ProjetoId;
+  __projetoLabel: string;
+  __projetoSecreto: boolean;
+}
+
+const todasTarefas: TarefaComProjeto[] = PROJETO_IDS.flatMap((pid) => {
+  const p = PROJETOS[pid];
+  return p.tarefas.map((t) => ({
+    ...t,
+    __projeto: pid,
+    __projetoLabel: p.secreto ? `Projeto ${pid}` : `${pid} · ${p.apelido}`,
+    __projetoSecreto: !!p.secreto,
+  }));
+});
+
+const pendentes = ordenarTarefas(todasTarefas.filter((t) => t.status === "pendente")) as TarefaComProjeto[];
+const progresso = ordenarTarefas(todasTarefas.filter((t) => t.status === "em-progresso")) as TarefaComProjeto[];
+const feitas = ordenarTarefas(todasTarefas.filter((t) => t.status === "feita")) as TarefaComProjeto[];
+
+const hoje = hojeISO();
+const totalAtrasadas = todasTarefas.filter(
+  (t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada"
+).length;
+
+// Responsáveis únicos com tarefas
+const responsaveisIdsComTarefas = Array.from(new Set(todasTarefas.map((t) => t.responsavelId)));
+const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.includes(p.id));
+---
+
+<Base
+  title="Tarefas · todas"
+  subtitle="Visão consolidada das tarefas dos 6 modelos"
+>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
+    <div class="bg-muted px-3.5 py-3 rounded-md">
+      <div class="text-[20px] font-medium leading-none">{todasTarefas.length}</div>
+      <div class="text-[11px] text-soft mt-1">total</div>
+    </div>
+    <div class="bg-muted px-3.5 py-3 rounded-md">
+      <div class="text-[20px] font-medium leading-none">{pendentes.length}</div>
+      <div class="text-[11px] text-soft mt-1">a fazer</div>
+    </div>
+    <div class="bg-info-bg px-3.5 py-3 rounded-md">
+      <div class="text-[20px] font-medium leading-none text-info-text">{progresso.length}</div>
+      <div class="text-[11px] text-info-text/80 mt-1">em progresso</div>
+    </div>
+    <div class={totalAtrasadas > 0 ? "bg-danger-bg px-3.5 py-3 rounded-md" : "bg-muted px-3.5 py-3 rounded-md"}>
+      <div class={totalAtrasadas > 0 ? "text-[20px] font-medium leading-none text-danger-text" : "text-[20px] font-medium leading-none text-soft"}>{totalAtrasadas}</div>
+      <div class={totalAtrasadas > 0 ? "text-[11px] text-danger-text/80 mt-1" : "text-[11px] text-soft mt-1"}>atrasadas</div>
+    </div>
+  </div>
+
+  <div class="filtros-wrap mb-5 tarefas-globais">
+    <label class="filtro-toggle">
+      <input type="checkbox" data-filtro="esconder-feitas" />
+      <span>esconder feitas</span>
+    </label>
+    <label class="filtro-toggle">
+      <input type="checkbox" data-filtro="so-atrasadas" />
+      <span>só atrasadas</span>
+    </label>
+    <label class="filtro-select">
+      <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">resp.</span>
+      <select data-filtro="responsavel">
+        <option value="">todos</option>
+        {responsaveis.map((r) => (
+          <option value={r.id}>{r.nome.split(" ")[0]}</option>
+        ))}
+      </select>
+    </label>
+    <label class="filtro-select">
+      <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">projeto</span>
+      <select data-filtro="projeto">
+        <option value="">todos</option>
+        {PROJETO_IDS.map((pid) => (
+          <option value={pid}>
+            {pid} · {PROJETOS[pid].secreto ? "protegido" : PROJETOS[pid].apelido}
+          </option>
+        ))}
+      </select>
+    </label>
+    <button type="button" class="filtro-reset" data-filtro="reset">limpar</button>
+  </div>
+
+  {pendentes.length > 0 && (
+    <div class="mb-5 task-group" data-group="pendente">
+      <div class="task-group-h">
+        <span class="task-group-dot s-pendente"></span>
+        <span>A fazer · <span class="task-group-count">{pendentes.length}</span></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
+        {pendentes.map((t) => (
+          <TaskItem
+            tarefa={t}
+            projetoLabel={t.__projetoLabel}
+            projetoHref={`/projetos/${t.__projeto}`}
+          />
+        ))}
+      </div>
+    </div>
+  )}
+
+  {progresso.length > 0 && (
+    <div class="mb-5 task-group" data-group="em-progresso">
+      <div class="task-group-h">
+        <span class="task-group-dot s-progresso"></span>
+        <span>Em progresso · <span class="task-group-count">{progresso.length}</span></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
+        {progresso.map((t) => (
+          <TaskItem
+            tarefa={t}
+            projetoLabel={t.__projetoLabel}
+            projetoHref={`/projetos/${t.__projeto}`}
+          />
+        ))}
+      </div>
+    </div>
+  )}
+
+  {feitas.length > 0 && (
+    <div class="mb-5 task-group" data-group="feita">
+      <div class="task-group-h">
+        <span class="task-group-dot s-feita"></span>
+        <span>Feitas · <span class="task-group-count">{feitas.length}</span></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
+        {feitas.map((t) => (
+          <TaskItem
+            tarefa={t}
+            projetoLabel={t.__projetoLabel}
+            projetoHref={`/projetos/${t.__projeto}`}
+          />
+        ))}
+      </div>
+    </div>
+  )}
+</Base>
+
+<style>
+  .filtros-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border: 0.5px solid var(--color-line);
+  }
+  .filtro-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--color-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .filtro-toggle input { accent-color: var(--color-info-border); }
+  .filtro-toggle:hover { color: var(--color-base); }
+  .filtro-select {
+    display: inline-flex;
+    align-items: center;
+  }
+  .filtro-select select {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-base);
+  }
+  .filtro-reset {
+    margin-left: auto;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-line);
+    background: transparent;
+    color: var(--color-faint);
+    cursor: pointer;
+  }
+  .filtro-reset:hover { background: var(--color-surface); color: var(--color-base); }
+
+  .task[data-hidden="1"] { display: none; }
+  .task-group[data-empty="1"] { display: none; }
+
+  .task-group-h {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .task-group-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .task-group-dot.s-pendente { background: var(--color-faint); }
+  .task-group-dot.s-progresso { background: var(--color-info-border); }
+  .task-group-dot.s-feita { background: var(--color-success-text); }
+</style>
+
+<script>
+  const wrap = document.querySelector<HTMLElement>(".tarefas-globais");
+  if (wrap) {
+    const storageKey = "tarefa-filtros-globais";
+    const inputs = wrap.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-filtro]");
+
+    type Filtros = {
+      esconderFeitas: boolean;
+      soAtrasadas: boolean;
+      responsavel: string;
+      projeto: string;
+    };
+    const padrao: Filtros = { esconderFeitas: false, soAtrasadas: false, responsavel: "", projeto: "" };
+
+    function ler(): Filtros {
+      try {
+        const raw = sessionStorage.getItem(storageKey);
+        return raw ? { ...padrao, ...JSON.parse(raw) } : { ...padrao };
+      } catch {
+        return { ...padrao };
+      }
+    }
+    function salvar(f: Filtros) { sessionStorage.setItem(storageKey, JSON.stringify(f)); }
+
+    function aplicar(f: Filtros) {
+      document.querySelectorAll<HTMLElement>(".task").forEach((t) => {
+        const status = t.dataset.status;
+        const responsavel = t.dataset.responsavel;
+        const atrasada = t.dataset.atrasada === "1";
+        // Para projeto, precisamos achar o link interno do TaskItem
+        const projetoLink = t.querySelector<HTMLAnchorElement>("a.proj-pill");
+        const projetoId = projetoLink?.getAttribute("href")?.split("/").pop() ?? "";
+        let hide = false;
+        if (f.esconderFeitas && status === "feita") hide = true;
+        if (f.soAtrasadas && !atrasada) hide = true;
+        if (f.responsavel && responsavel !== f.responsavel) hide = true;
+        if (f.projeto && projetoId !== f.projeto) hide = true;
+        t.dataset.hidden = hide ? "1" : "0";
+      });
+      document.querySelectorAll<HTMLElement>(".task-group").forEach((g) => {
+        const visible = g.querySelectorAll<HTMLElement>('.task[data-hidden="0"]').length;
+        const countEl = g.querySelector<HTMLElement>(".task-group-count");
+        if (countEl) countEl.textContent = String(visible);
+        g.dataset.empty = visible === 0 ? "1" : "0";
+      });
+    }
+
+    function bind() {
+      const f = ler();
+      inputs.forEach((el) => {
+        const filtro = el.dataset.filtro;
+        if (filtro === "esconder-feitas" && el instanceof HTMLInputElement) {
+          el.checked = f.esconderFeitas;
+          el.addEventListener("change", () => { const c = ler(); c.esconderFeitas = el.checked; salvar(c); aplicar(c); });
+        } else if (filtro === "so-atrasadas" && el instanceof HTMLInputElement) {
+          el.checked = f.soAtrasadas;
+          el.addEventListener("change", () => { const c = ler(); c.soAtrasadas = el.checked; salvar(c); aplicar(c); });
+        } else if (filtro === "responsavel" && el instanceof HTMLSelectElement) {
+          el.value = f.responsavel;
+          el.addEventListener("change", () => { const c = ler(); c.responsavel = el.value; salvar(c); aplicar(c); });
+        } else if (filtro === "projeto" && el instanceof HTMLSelectElement) {
+          el.value = f.projeto;
+          el.addEventListener("change", () => { const c = ler(); c.projeto = el.value; salvar(c); aplicar(c); });
+        } else if (filtro === "reset" && el instanceof HTMLButtonElement) {
+          el.addEventListener("click", () => {
+            sessionStorage.removeItem(storageKey);
+            inputs.forEach((x) => {
+              if (x instanceof HTMLInputElement) x.checked = false;
+              else if (x instanceof HTMLSelectElement) x.value = "";
+            });
+            aplicar({ ...padrao });
+          });
+        }
+      });
+      aplicar(f);
+    }
+    bind();
+  }
+</script>

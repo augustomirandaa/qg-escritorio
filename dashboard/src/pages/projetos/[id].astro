@@ -6,6 +6,8 @@ import HumanCard from "../../components/HumanCard.astro";
 import TaskItem from "../../components/TaskItem.astro";
 import ConnectionItem from "../../components/ConnectionItem.astro";
 import { PROJETOS, PROJETO_IDS } from "../../data/projetos";
+import { pessoaById } from "../../data/pessoas";
+import { ordenarTarefas } from "../../data/tarefa-utils";
 import type { ProjetoId } from "../../data/types";
 
 export function getStaticPaths() {
@@ -16,9 +18,18 @@ const { id } = Astro.params as { id: ProjetoId };
 const p = PROJETOS[id];
 const hasDormente = p.agentes.some((a) => a.dormente);
 
-const tarefasPendentes = p.tarefas.filter((t) => t.status === "pendente");
-const tarefasProgresso = p.tarefas.filter((t) => t.status === "em-progresso");
-const tarefasFeitas = p.tarefas.filter((t) => t.status === "feita");
+const tarefasPendentes = ordenarTarefas(p.tarefas.filter((t) => t.status === "pendente"));
+const tarefasProgresso = ordenarTarefas(p.tarefas.filter((t) => t.status === "em-progresso"));
+const tarefasFeitas = ordenarTarefas(p.tarefas.filter((t) => t.status === "feita"));
+
+const totalTarefas = p.tarefas.length;
+const feitasCount = tarefasFeitas.length;
+const progressoPct = totalTarefas > 0 ? Math.round((feitasCount / totalTarefas) * 100) : 0;
+
+// Responsáveis únicos para o filtro
+const responsaveisUnicos = Array.from(new Set(p.tarefas.map((t) => t.responsavelId)))
+  .map((id) => pessoaById(id))
+  .filter((p): p is NonNullable<typeof p> => !!p);
 
 const conexoes = p.conexoes ?? [];
 const conexoesConectadas = conexoes.filter((c) => c.status === "conectado").length;
@@ -196,8 +207,8 @@ const gruposEnvolvidos = [
       {p.agentes.map((a) => <AgentCard agente={a} />)}
     </div>
 
-    <div class="mt-6 pt-4 border-t border-line">
-      <div class="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+    <div class="mt-6 pt-4 border-t border-line tarefas-secao" data-projeto-id={p.id}>
+      <div class="flex items-baseline justify-between mb-2 gap-3 flex-wrap">
         <h4 class="text-[15px] font-medium">Tarefas</h4>
         <div class="flex items-center gap-3 text-[11px] text-soft">
           {tarefasPendentes.length > 0 && <span><strong class="font-medium text-base">{tarefasPendentes.length}</strong> a fazer</span>}
@@ -206,37 +217,69 @@ const gruposEnvolvidos = [
         </div>
       </div>
 
+      {totalTarefas > 0 && (
+        <div class="progresso-wrap mb-4">
+          <div class="progresso-track">
+            <div class="progresso-fill" style={`width: ${progressoPct}%`}></div>
+          </div>
+          <span class="progresso-label">{feitasCount}/{totalTarefas} · {progressoPct}%</span>
+        </div>
+      )}
+
+      <div class="filtros-wrap mb-3">
+        <label class="filtro-toggle">
+          <input type="checkbox" data-filtro="esconder-feitas" />
+          <span>esconder feitas</span>
+        </label>
+        <label class="filtro-toggle">
+          <input type="checkbox" data-filtro="so-atrasadas" />
+          <span>só atrasadas</span>
+        </label>
+        {responsaveisUnicos.length > 1 && (
+          <label class="filtro-select">
+            <span class="text-[10px] text-faint uppercase tracking-wider mr-1.5">resp.</span>
+            <select data-filtro="responsavel">
+              <option value="">todos</option>
+              {responsaveisUnicos.map((r) => (
+                <option value={r.id}>{r.nome.split(" ")[0]}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button type="button" class="filtro-reset" data-filtro="reset">limpar</button>
+      </div>
+
       {tarefasPendentes.length > 0 && (
-        <div class="mb-4">
+        <div class="mb-4 task-group" data-group="pendente">
           <div class="task-group-h">
             <span class="task-group-dot s-pendente"></span>
-            A fazer · {tarefasPendentes.length}
+            <span>A fazer · <span class="task-group-count">{tarefasPendentes.length}</span></span>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
             {tarefasPendentes.map((t) => <TaskItem tarefa={t} />)}
           </div>
         </div>
       )}
 
       {tarefasProgresso.length > 0 && (
-        <div class="mb-4">
+        <div class="mb-4 task-group" data-group="em-progresso">
           <div class="task-group-h">
             <span class="task-group-dot s-progresso"></span>
-            Em progresso · {tarefasProgresso.length}
+            <span>Em progresso · <span class="task-group-count">{tarefasProgresso.length}</span></span>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
             {tarefasProgresso.map((t) => <TaskItem tarefa={t} />)}
           </div>
         </div>
       )}
 
       {tarefasFeitas.length > 0 && (
-        <div class="mb-4">
+        <div class="mb-4 task-group" data-group="feita">
           <div class="task-group-h">
             <span class="task-group-dot s-feita"></span>
-            Feitas · {tarefasFeitas.length}
+            <span>Feitas · <span class="task-group-count">{tarefasFeitas.length}</span></span>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 task-group-grid">
             {tarefasFeitas.map((t) => <TaskItem tarefa={t} />)}
           </div>
         </div>
@@ -361,6 +404,105 @@ const gruposEnvolvidos = [
     });
   }
 
+  // Filtros das tarefas (sessionStorage por projeto)
+  const tarefasSecao = document.querySelector<HTMLElement>(".tarefas-secao");
+  if (tarefasSecao) {
+    const projetoId = tarefasSecao.dataset.projetoId ?? "x";
+    const storageKey = `tarefa-filtros-${projetoId}`;
+
+    const inputs = tarefasSecao.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+      "[data-filtro]"
+    );
+
+    type Filtros = {
+      esconderFeitas: boolean;
+      soAtrasadas: boolean;
+      responsavel: string;
+    };
+
+    const padrao: Filtros = { esconderFeitas: false, soAtrasadas: false, responsavel: "" };
+
+    function ler(): Filtros {
+      try {
+        const raw = sessionStorage.getItem(storageKey);
+        if (!raw) return { ...padrao };
+        return { ...padrao, ...JSON.parse(raw) };
+      } catch {
+        return { ...padrao };
+      }
+    }
+
+    function salvar(f: Filtros) {
+      sessionStorage.setItem(storageKey, JSON.stringify(f));
+    }
+
+    function aplicar(f: Filtros) {
+      const tasks = tarefasSecao!.querySelectorAll<HTMLElement>(".task");
+      tasks.forEach((t) => {
+        const status = t.dataset.status;
+        const responsavel = t.dataset.responsavel;
+        const atrasada = t.dataset.atrasada === "1";
+        let hide = false;
+        if (f.esconderFeitas && status === "feita") hide = true;
+        if (f.soAtrasadas && !atrasada) hide = true;
+        if (f.responsavel && responsavel !== f.responsavel) hide = true;
+        t.dataset.hidden = hide ? "1" : "0";
+      });
+
+      // Atualiza contagem em cada grupo + esconde grupo se vazio
+      tarefasSecao!.querySelectorAll<HTMLElement>(".task-group").forEach((g) => {
+        const visible = g.querySelectorAll<HTMLElement>('.task[data-hidden="0"]').length;
+        const countEl = g.querySelector<HTMLElement>(".task-group-count");
+        if (countEl) countEl.textContent = String(visible);
+        g.dataset.empty = visible === 0 ? "1" : "0";
+      });
+    }
+
+    function bind() {
+      const f = ler();
+      inputs.forEach((el) => {
+        const filtro = el.dataset.filtro;
+        if (!filtro) return;
+        if (filtro === "esconder-feitas" && el instanceof HTMLInputElement) {
+          el.checked = f.esconderFeitas;
+          el.addEventListener("change", () => {
+            const cur = ler();
+            cur.esconderFeitas = el.checked;
+            salvar(cur);
+            aplicar(cur);
+          });
+        } else if (filtro === "so-atrasadas" && el instanceof HTMLInputElement) {
+          el.checked = f.soAtrasadas;
+          el.addEventListener("change", () => {
+            const cur = ler();
+            cur.soAtrasadas = el.checked;
+            salvar(cur);
+            aplicar(cur);
+          });
+        } else if (filtro === "responsavel" && el instanceof HTMLSelectElement) {
+          el.value = f.responsavel;
+          el.addEventListener("change", () => {
+            const cur = ler();
+            cur.responsavel = el.value;
+            salvar(cur);
+            aplicar(cur);
+          });
+        } else if (filtro === "reset" && el instanceof HTMLButtonElement) {
+          el.addEventListener("click", () => {
+            sessionStorage.removeItem(storageKey);
+            inputs.forEach((x) => {
+              if (x instanceof HTMLInputElement) x.checked = false;
+              else if (x instanceof HTMLSelectElement) x.value = "";
+            });
+            aplicar({ ...padrao });
+          });
+        }
+      });
+      aplicar(f);
+    }
+    bind();
+  }
+
   // Secret project gate (UX-only, NOT real security — see comment in projetos.ts)
   const SECRET_PASSWORD = "1234";
   const content = document.querySelector<HTMLElement>("[data-secret-content]");
@@ -446,6 +588,87 @@ const gruposEnvolvidos = [
     letter-spacing: 0.6px;
     margin-bottom: 6px;
   }
+
+  .progresso-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progresso-track {
+    flex: 1;
+    height: 6px;
+    background: var(--color-canvas);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progresso-fill {
+    height: 100%;
+    background: var(--color-success-text);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .progresso-label {
+    font-size: 11px;
+    color: var(--color-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .filtros-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--color-muted);
+    border-radius: 8px;
+    border: 0.5px solid var(--color-line);
+  }
+  .filtro-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--color-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .filtro-toggle input[type="checkbox"] {
+    accent-color: var(--color-info-border);
+  }
+  .filtro-toggle:hover { color: var(--color-base); }
+
+  .filtro-select {
+    display: inline-flex;
+    align-items: center;
+  }
+  .filtro-select select {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-base);
+  }
+  .filtro-reset {
+    margin-left: auto;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-line);
+    background: transparent;
+    color: var(--color-faint);
+    cursor: pointer;
+  }
+  .filtro-reset:hover {
+    background: var(--color-surface);
+    color: var(--color-base);
+  }
+
+  .task[data-hidden="1"] { display: none; }
+  .task-group[data-empty="1"] { display: none; }
 
   .task-group-h {
     font-size: 11px;

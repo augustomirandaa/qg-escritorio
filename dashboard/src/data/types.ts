@@ -13,6 +13,7 @@ export type StatusClass = "success" | "warning" | "info" | "neutral" | "danger";
 export type AvatarType = "socio" | "hibrida" | "executor" | "network" | "cliente";
 
 export type StatusTarefa = "pendente" | "em-progresso" | "feita";
+export type PrioridadeTarefa = "alta" | "normal";
 
 export interface Tarefa {
   titulo: string;
@@ -20,6 +21,8 @@ export interface Tarefa {
   status: StatusTarefa;
   porQue?: string;
   notas?: string;
+  prazo?: string;          // ISO date YYYY-MM-DD
+  prioridade?: PrioridadeTarefa; // default 'normal' se não informada
 }
 
 export interface Briefing {

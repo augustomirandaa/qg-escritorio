@@ -43,8 +43,8 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
     ],
     tarefas: [
       { titulo: "Manter campanhas rodando sem ruptura", responsavelId: "bryan", status: "em-progresso", porQue: "Operação Lumina é a única receita rodando — qualquer queda vira buraco financeiro imediato." },
-      { titulo: "Documentar o playbook (urgente — desbloqueia C)", responsavelId: "augusto", status: "pendente", porQue: "Sem playbook documentado, vender consultoria do Modelo C = re-explicar tudo manualmente. É o blocker." },
-      { titulo: "Preparar migração de contrato pré-saída", responsavelId: "augusto", status: "pendente", porQue: "Quando a saída acontecer, contrato precisa estar costurado direto entre Augusto e a Cintia, sem amarração com o grupo." },
+      { titulo: "Documentar o playbook (urgente — desbloqueia C)", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-15", porQue: "Sem playbook documentado, vender consultoria do Modelo C = re-explicar tudo manualmente. É o blocker." },
+      { titulo: "Preparar migração de contrato pré-saída", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-06-01", porQue: "Quando a saída acontecer, contrato precisa estar costurado direto entre Augusto e a Cintia, sem amarração com o grupo." },
       { titulo: "Aquecer Dr. Julio Hernandez (futuro Modelo A)", responsavelId: "augusto", status: "pendente", porQue: "Pipeline de growth partners pra reduzir concentração de receita na Cintia." },
     ],
     riscos: [
@@ -86,8 +86,8 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       { tipo: "crm", nome: "CRM pipeline B (doutores + pacientes)", descricao: "Pipeline duplo: prospecção de novas clínicas + acompanhamento de pacientes.", status: "planejado" },
     ],
     tarefas: [
-      { titulo: "Mapear rede de clínicas capilares · pipeline está zero", responsavelId: "augusto", status: "pendente", porQue: "Sem rede além do Cássio, modelo depende de 1 doutor — não valida nada e não escala." },
-      { titulo: "Logística do próximo paciente do Cássio", responsavelId: "augusto", status: "em-progresso", porQue: "Hotel, traslado e jornada precisam funcionar pra a comissão sair e pra Cássio confiar no fluxo." },
+      { titulo: "Mapear rede de clínicas capilares · pipeline está zero", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-10", porQue: "Sem rede além do Cássio, modelo depende de 1 doutor — não valida nada e não escala." },
+      { titulo: "Logística do próximo paciente do Cássio", responsavelId: "augusto", status: "em-progresso", prazo: "2026-05-05", porQue: "Hotel, traslado e jornada precisam funcionar pra a comissão sair e pra Cássio confiar no fluxo." },
       { titulo: "Mapping de plásticos chegando", responsavelId: "augusto", status: "pendente", porQue: "Diversificar verticais reduz dependência do capilar e abre frente nova de comissão." },
     ],
     riscos: [
@@ -128,9 +128,9 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       { tipo: "crm", nome: "CRM de leads consultivos", descricao: "Pipeline de doutores interessados · qualificação e follow-up.", status: "planejado" },
     ],
     tarefas: [
-      { titulo: "Documentar Lumina · pré-requisito do modelo", responsavelId: "augusto", status: "pendente", porQue: "Sem playbook escrito, consultoria vira aula improvisada — não escala e não diferencia." },
-      { titulo: "Filtrar leads do Pablo por vertical · NÃO odontológico pré-saída", responsavelId: "pablo", status: "pendente", porQue: "Vender consultoria pra dentista BR pré-saída quebra pacto tácito com Flávio e cria concorrente direto da Primordialle." },
-      { titulo: "Estruturar oferta de 6 meses + upsell · pricing e escopo", responsavelId: "augusto", status: "pendente", porQue: "Sem oferta concreta na mão, não tem o que apresentar pros leads que o Pablo vai trazer." },
+      { titulo: "Documentar Lumina · pré-requisito do modelo", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-15", porQue: "Sem playbook escrito, consultoria vira aula improvisada — não escala e não diferencia." },
+      { titulo: "Filtrar leads do Pablo por vertical · NÃO odontológico pré-saída", responsavelId: "pablo", status: "pendente", prioridade: "alta", porQue: "Vender consultoria pra dentista BR pré-saída quebra pacto tácito com Flávio e cria concorrente direto da Primordialle." },
+      { titulo: "Estruturar oferta de 6 meses + upsell · pricing e escopo", responsavelId: "augusto", status: "pendente", prazo: "2026-05-30", porQue: "Sem oferta concreta na mão, não tem o que apresentar pros leads que o Pablo vai trazer." },
     ],
     riscos: [
       "Sem playbook documentado, escalar = re-explicar tudo manualmente",
@@ -173,9 +173,9 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       { tipo: "site", nome: "Plataforma própria · Fase 2", descricao: "Software multi-tenant da Aesthetica · construção depois de validar Fase 1.", status: "planejado", responsavelId: "matheus" },
     ],
     tarefas: [
-      { titulo: "Marcar call estratégica com Thomas", responsavelId: "augusto", status: "pendente", porQue: "Sem call de alinhamento, qualquer movimento contratual é cego — precisa entender o que ele quer e o que pode oferecer." },
-      { titulo: "Validar estrutura jurídica intermediadora BR-EUA", responsavelId: "augusto", status: "pendente", porQue: "Stark Law e Anti-Kickback são risco real. Estrutura errada compromete o modelo inteiro e pode expor pessoalmente." },
-      { titulo: "Augusto ler Provider Onboarding Form da Aesthetica", responsavelId: "augusto", status: "pendente", porQue: "Documento define o que a Aesthetica espera de provider — base pra negociar termos do Country Manager." },
+      { titulo: "Marcar call estratégica com Thomas", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-03", porQue: "Sem call de alinhamento, qualquer movimento contratual é cego — precisa entender o que ele quer e o que pode oferecer." },
+      { titulo: "Validar estrutura jurídica intermediadora BR-EUA", responsavelId: "augusto", status: "pendente", prioridade: "alta", porQue: "Stark Law e Anti-Kickback são risco real. Estrutura errada compromete o modelo inteiro e pode expor pessoalmente." },
+      { titulo: "Augusto ler Provider Onboarding Form da Aesthetica", responsavelId: "augusto", status: "pendente", prazo: "2026-05-02", porQue: "Documento define o que a Aesthetica espera de provider — base pra negociar termos do Country Manager." },
     ],
     riscos: [
       "Stark Law / Anti-Kickback · risco regulatório se mal estruturado",
@@ -247,7 +247,7 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       { tipo: "calendar", nome: "Calendário editorial · cadência F", descricao: "Cronograma de publicação · sincroniza Antonio + Well + aprovação Augusto.", status: "pendente", responsavelId: "pablo" },
     ],
     tarefas: [
-      { titulo: "Reunião Augusto + Pablo + Antonio sobre briefing editorial", responsavelId: "augusto", status: "pendente", porQue: "Sem briefing claro, Antonio executa pauta genérica e marca não cresce o suficiente pra alavancar C." },
+      { titulo: "Reunião Augusto + Pablo + Antonio sobre briefing editorial", responsavelId: "augusto", status: "pendente", prioridade: "alta", prazo: "2026-05-06", porQue: "Sem briefing claro, Antonio executa pauta genérica e marca não cresce o suficiente pra alavancar C." },
       { titulo: "8 a 12 posts/mês nos 3 pilares", responsavelId: "antonio", status: "em-progresso", porQue: "Cadência mínima pra construir narrativa consistente — abaixo disso, marca pessoal não rende como ativo." },
       { titulo: "CTAs institucionais pré-saída · sem CTA pessoal explícita", responsavelId: "pablo", status: "pendente", porQue: "CTA pessoal explícita pré-saída = conflito de interesse direto com Primordialle. Pablo precisa garantir que toda pauta respeita essa linha." },
     ],

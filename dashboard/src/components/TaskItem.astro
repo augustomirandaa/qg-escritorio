@@ -1,9 +1,10 @@
 ---
 import type { Tarefa } from "../data/types";
 import { pessoaById } from "../data/pessoas";
+import { formatarPrazo, hojeISO } from "../data/tarefa-utils";
 
-interface Props { tarefa: Tarefa; }
-const { tarefa } = Astro.props;
+interface Props { tarefa: Tarefa; projetoLabel?: string; projetoHref?: string; }
+const { tarefa, projetoLabel, projetoHref } = Astro.props;
 const pessoa = pessoaById(tarefa.responsavelId);
 
 const statusLabel = {
@@ -17,9 +18,17 @@ const statusClass = {
   "em-progresso": "s-info",
   "feita": "s-success",
 }[tarefa.status];
+
+const prazoFmt = tarefa.status !== "feita" ? formatarPrazo(tarefa.prazo, hojeISO()) : null;
+const isAlta = tarefa.prioridade === "alta";
 ---
 
-<div class:list={["task", `task-${tarefa.status}`]}>
+<div
+  class:list={["task", `task-${tarefa.status}`]}
+  data-status={tarefa.status}
+  data-responsavel={tarefa.responsavelId}
+  data-atrasada={prazoFmt?.urgencia === "atrasada" ? "1" : "0"}
+>
   <div class="flex items-start gap-2.5">
     <div class="checkbox" aria-hidden="true">
       {tarefa.status === "feita" && (
@@ -32,13 +41,23 @@ const statusClass = {
       )}
     </div>
     <div class="flex-1 min-w-0">
-      <div class:list={["text-[13px] font-medium leading-snug", tarefa.status === "feita" && "line-through text-faint"]}>{tarefa.titulo}</div>
+      <div class="flex items-start gap-1.5">
+        {isAlta && (
+          <span class="prio-flag" title="Alta prioridade" aria-label="Alta prioridade">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+              <path d="M4 21V3h11l-1 4h6v10h-9l-1-4H6v8z"/>
+            </svg>
+          </span>
+        )}
+        <div class:list={["text-[13px] font-medium leading-snug flex-1", tarefa.status === "feita" && "line-through text-faint"]}>{tarefa.titulo}</div>
+      </div>
       {tarefa.porQue && (
         <div class="por-que mt-1.5">
           <span class="por-que-label">por quê</span>
           <span class="por-que-text">{tarefa.porQue}</span>
         </div>
       )}
+      {tarefa.notas && <p class="text-[11px] text-soft leading-snug mt-1.5 m-0">{tarefa.notas}</p>}
       <div class="flex items-center gap-2 mt-2 flex-wrap">
         {pessoa ? (
           <span class="resp-pill">
@@ -49,10 +68,24 @@ const statusClass = {
           <span class="text-[11px] text-faint italic">sem responsável</span>
         )}
         <span class={`status-badge ${statusClass}`}>{statusLabel}</span>
+        {prazoFmt && (
+          <span class:list={["prazo-pill", `u-${prazoFmt.urgencia}`]} title={tarefa.prazo}>
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <polyline points="12 7 12 12 15.5 14"/>
+            </svg>
+            {prazoFmt.label}
+          </span>
+        )}
+        {projetoLabel && projetoHref && (
+          <a href={projetoHref} class="proj-pill">
+            <span class="text-[10px] text-faint mr-0.5">em</span>
+            <span class="font-medium">{projetoLabel}</span>
+          </a>
+        )}
       </div>
     </div>
   </div>
-  {tarefa.notas && <p class="text-[11px] text-soft leading-snug mt-2 ml-7">{tarefa.notas}</p>}
 </div>
 
 <style>
@@ -141,4 +174,61 @@ const statusClass = {
   .por-que-text {
     color: var(--color-base);
   }
+
+  .prio-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-danger-text);
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .prazo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 0.5px solid transparent;
+  }
+  .prazo-pill.u-atrasada {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-text);
+    border-color: var(--color-danger-text);
+  }
+  .prazo-pill.u-hoje {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    font-weight: 600;
+  }
+  .prazo-pill.u-amanha {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+  }
+  .prazo-pill.u-proxima-semana {
+    background: var(--color-muted);
+    color: var(--color-base);
+  }
+  .prazo-pill.u-futuro {
+    background: var(--color-muted);
+    color: var(--color-faint);
+  }
+
+  .proj-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-line);
+    font-size: 11px;
+    color: var(--color-base);
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .proj-pill:hover { background: var(--color-muted); }
 </style>
