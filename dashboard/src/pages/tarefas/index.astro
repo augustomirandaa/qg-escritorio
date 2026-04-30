@@ -76,7 +76,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
   )}
 
   <!-- Stat cards clicáveis -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4 stat-grid">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-4 stat-grid">
     <button type="button" class="stat-card" data-stat-filter="todas">
       <div class="stat-v">{todasTarefas.length}</div>
       <div class="stat-l">total</div>
@@ -92,6 +92,10 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     <button type="button" class={totalAtrasadas > 0 ? "stat-card stat-atrasadas" : "stat-card"} data-stat-filter="atrasadas">
       <div class="stat-v">{totalAtrasadas}</div>
       <div class="stat-l">atrasadas</div>
+    </button>
+    <button type="button" class="stat-card stat-feitas" data-stat-filter="feita">
+      <div class="stat-v">{feitas.length}</div>
+      <div class="stat-l">feitas</div>
     </button>
   </div>
 
@@ -195,6 +199,9 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       </button>
     </div>
 
+    <button type="button" class="filtro-reset" data-action="revert-overrides" title="Devolver tarefas ao estado do arquivo (apaga seus ✓ e adiamentos)" hidden data-revert>
+      reverter mudanças <span class="revert-count" data-revert-count></span>
+    </button>
     <button type="button" class="filtro-reset" data-filtro="reset" title="Limpar todos os filtros">limpar</button>
     <button type="button" class="kbd-help" data-action="show-help" title="Atalhos de teclado">?</button>
   </div>
@@ -350,6 +357,9 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
   .stat-atrasadas { background: var(--color-danger-bg); }
   .stat-atrasadas .stat-v { color: var(--color-danger-text); }
   .stat-atrasadas .stat-l { color: var(--color-danger-text); opacity: .8; }
+  .stat-feitas { background: var(--color-success-bg); }
+  .stat-feitas .stat-v { color: var(--color-success-text); }
+  .stat-feitas .stat-l { color: var(--color-success-text); opacity: .8; }
 
   /* Chips */
   .chips-row {
@@ -483,6 +493,22 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     background: var(--color-surface); color: var(--color-base);
   }
   .kbd-help { font-weight: 600; }
+  [data-revert] {
+    color: var(--color-danger-text);
+    border-color: rgba(220,38,38,.25);
+  }
+  [data-revert]:hover {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-text);
+    border-color: var(--color-danger-text);
+  }
+  .revert-count {
+    background: rgba(0,0,0,.08);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    margin-left: 2px;
+  }
 
   /* Empty state */
   .empty-global {
@@ -782,7 +808,11 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
 
       let hide = false;
 
-      if (f.esconderFeitas && status === "feita") hide = true;
+      // Quando "Feitas" tá ativo como filtro principal, ignora esconderFeitas
+      // (senão a tela ia ficar vazia — o usuário quer ver as feitas)
+      const verSoFeitas = f.statFilter === "feita";
+
+      if (f.esconderFeitas && status === "feita" && !verSoFeitas) hide = true;
       if (f.soAtrasadas && !atrasada) hide = true;
       if (f.responsavel && responsavel !== f.responsavel) hide = true;
       if (f.projeto && projeto !== f.projeto) hide = true;
@@ -800,6 +830,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       if (f.statFilter === "pendente"     && status !== "pendente")     hide = true;
       if (f.statFilter === "em-progresso" && status !== "em-progresso") hide = true;
       if (f.statFilter === "atrasadas"    && !atrasada)                  hide = true;
+      if (f.statFilter === "feita"        && status !== "feita")         hide = true;
 
       t.dataset.hidden = hide ? "1" : "0";
 
@@ -886,8 +917,10 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     }
     salvarOverrides(map);
     reagruparPorStatus();
-    aplicarFiltros(lerFiltros());
+    const fAtual = lerFiltros();
+    aplicarFiltros(fAtual);
     atualizarStats();
+    sincRevertButton();
 
     const titulo = el.dataset.titulo || "tarefa";
     const labels: Record<Status, { txt: string; tone: string }> = {
@@ -895,7 +928,55 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       "em-progresso": { txt: `▶ ${titulo} marcada como em progresso`, tone: "info" },
       "feita": { txt: `✓ ${titulo} concluída`, tone: "success" },
     };
-    toast(labels[status].txt, labels[status].tone, () => setStatusTask(el, orig as Status));
+
+    // Toast contextual: se acabou de virar "feita" e o usuário tá com
+    // "esconder feitas" ligado e SEM filtro de feitas, oferece atalho pra ver.
+    const escondeu = status === "feita" && fAtual.esconderFeitas && fAtual.statFilter !== "feita";
+    toast(
+      labels[status].txt,
+      labels[status].tone,
+      () => setStatusTask(el, orig as Status),
+      escondeu ? { label: "ver feitas →", run: () => irPraFeitas() } : undefined
+    );
+  }
+
+  function irPraFeitas() {
+    const f = lerFiltros();
+    f.statFilter = "feita";
+    salvarFiltros(f);
+    aplicarFiltros(f);
+    syncChips(f);
+    const stat = document.querySelector<HTMLElement>('.stat-card[data-stat-filter="feita"]');
+    stat?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function sincRevertButton() {
+    const map = lerOverrides();
+    const n = Object.keys(map).length;
+    const btn = document.querySelector<HTMLElement>("[data-revert]");
+    const cnt = document.querySelector<HTMLElement>("[data-revert-count]");
+    if (btn) btn.toggleAttribute("hidden", n === 0);
+    if (cnt) cnt.textContent = n > 0 ? String(n) : "";
+  }
+
+  function reverterOverrides() {
+    const map = lerOverrides();
+    const n = Object.keys(map).length;
+    if (n === 0) { toast("Sem mudanças pra reverter", "info"); return; }
+    salvarOverrides({});
+    document.querySelectorAll<HTMLElement>(".task").forEach((el) => {
+      const orig = el.dataset.statusOriginal as Status;
+      el.dataset.status = orig;
+      el.classList.remove("task-pendente", "task-em-progresso", "task-feita");
+      el.classList.add(`task-${orig}`);
+      // restaurar prazo original (se tiver snooze pendente, recompõe)
+      // como não guardamos o original separado, vamos só atualizar atrasada/urgencia
+    });
+    reagruparPorStatus();
+    aplicarFiltros(lerFiltros());
+    atualizarStats();
+    sincRevertButton();
+    toast(`Revertido · ${n} mudança${n === 1 ? "" : "s"} apagada${n === 1 ? "" : "s"}`, "info");
   }
 
   function snoozeTask(el: HTMLElement, days: number) {
@@ -934,6 +1015,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     toast(`⏰ ${el.dataset.titulo} adiada +${days}d`, "info");
     aplicarFiltros(lerFiltros());
     atualizarStats();
+    sincRevertButton();
   }
 
   async function copyLink(el: HTMLElement) {
@@ -953,7 +1035,12 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
   }
 
   // ─── toast queue ───
-  function toast(text: string, tone: string = "", onUndo?: () => void) {
+  function toast(
+    text: string,
+    tone: string = "",
+    onUndo?: () => void,
+    extra?: { label: string; run: () => void }
+  ) {
     const host = document.querySelector(".toast-host");
     if (!host) return;
     const t = document.createElement("div");
@@ -961,6 +1048,12 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     const span = document.createElement("span");
     span.textContent = text;
     t.appendChild(span);
+    if (extra) {
+      const btn = document.createElement("button");
+      btn.textContent = extra.label;
+      btn.addEventListener("click", () => { extra.run(); t.remove(); });
+      t.appendChild(btn);
+    }
     if (onUndo) {
       const btn = document.createElement("button");
       btn.textContent = "desfazer";
@@ -968,7 +1061,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       t.appendChild(btn);
     }
     host.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(() => t.remove(), extra || onUndo ? 4500 : 3000);
   }
 
   // ─── focus tracking pra atalhos j/k ───
@@ -1022,6 +1115,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     aplicarFiltros(f);
     syncChips(f);
     aplicarView(lerView());
+    sincRevertButton();
 
     function commit(part: Partial<Filtros>) {
       f = { ...f, ...part };
@@ -1106,6 +1200,10 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       const closeBtn = target.closest('[data-action="close-help"]');
       if (closeBtn) { showHelp(false); return; }
       if (target.classList.contains("help-overlay")) { showHelp(false); return; }
+
+      // Reverter overrides
+      const revertBtn = target.closest('[data-action="revert-overrides"]');
+      if (revertBtn) { reverterOverrides(); return; }
 
       // Não interferir com pills de projeto / links / botões internos com data-no-expand
       const noExpand = target.closest("[data-no-expand]");
