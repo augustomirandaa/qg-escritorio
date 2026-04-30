@@ -777,6 +777,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     const total = document.querySelectorAll(".task").length;
     const pend  = document.querySelectorAll('.task[data-status="pendente"]').length;
     const prog  = document.querySelectorAll('.task[data-status="em-progresso"]').length;
+    const feit  = document.querySelectorAll('.task[data-status="feita"]').length;
     const atr   = Array.from(document.querySelectorAll<HTMLElement>(".task")).filter((t) =>
       t.dataset.status !== "feita" && t.dataset.atrasada === "1"
     ).length;
@@ -789,6 +790,22 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     set('[data-stat-filter="pendente"] .stat-v', pend);
     set('[data-stat-filter="em-progresso"] .stat-v', prog);
     set('[data-stat-filter="atrasadas"] .stat-v', atr);
+    set('[data-stat-filter="feita"] .stat-v', feit);
+
+    // Chips (Hoje, Atrasadas, Sem prazo, Alta prioridade) — também precisam refletir overrides
+    const tasks = Array.from(document.querySelectorAll<HTMLElement>(".task"));
+    const ativas = tasks.filter((t) => t.dataset.status !== "feita");
+    const cHoje = ativas.filter((t) => t.dataset.prazoUrgencia === "hoje").length;
+    const cSemPrazo = ativas.filter((t) => !t.dataset.prazo).length;
+    const cAlta = ativas.filter((t) => t.dataset.prioridade === "alta").length;
+    const setChip = (chipName: string, v: number) => {
+      const el = document.querySelector<HTMLElement>(`.chip[data-chip="${chipName}"] .chip-count`);
+      if (el) el.textContent = String(v);
+    };
+    setChip("hoje", cHoje);
+    setChip("atrasadas", atr);
+    setChip("sem-prazo", cSemPrazo);
+    setChip("alta", cAlta);
   }
 
   // ─── filtragem ───
