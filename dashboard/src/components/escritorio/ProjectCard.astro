@@ -1,0 +1,165 @@
+---
+import AvatarTiny from "./AvatarTiny.astro";
+import { tarefasAbertasDoProjeto } from "../../data/tarefas-escritorio";
+import { META_PROJETOS, KIND_HUMANO, STATUS_BADGE_CLASS } from "../../data/escritorio-meta";
+import { TODAS_PESSOAS } from "../../data/pessoas";
+import { AGENTES } from "../../data/agentes";
+import { PROJETOS } from "../../data/projetos";
+import type { ProjetoId } from "../../data/types";
+
+interface Props {
+  projetoId: ProjetoId;
+  podeConvidar?: boolean;
+}
+const { projetoId, podeConvidar = false } = Astro.props;
+const meta = META_PROJETOS[projetoId];
+const projeto = PROJETOS[projetoId];
+
+const tarefas = tarefasAbertasDoProjeto(projetoId).slice(0, 4);
+const humanosNoProjeto = TODAS_PESSOAS.filter((p) => p.modelos.includes(projetoId));
+const agentesNoProjeto = AGENTES.filter((a) => a.modelos.includes(projetoId));
+
+function nomeAgente(id: string): string {
+  const a = AGENTES.find((x) => x.id === id);
+  return a ? a.nome : id;
+}
+
+function tituloHumano(id: string): string {
+  const p = TODAS_PESSOAS.find((x) => x.id === id);
+  return p ? p.nome : id;
+}
+
+const checkClass = (state: string) =>
+  state === "critica"
+    ? "crit"
+    : state === "fazendo"
+    ? "doing"
+    : state === "concluida"
+    ? "done"
+    : "";
+---
+
+<article class="pc-card" data-projeto={projetoId}>
+  <header class="pc-head">
+    <div class="pc-letter">{meta.letra}</div>
+    <div class="pc-info">
+      <h4 class="pc-name">{meta.apelido}</h4>
+      <div class="pc-status">{meta.status}</div>
+      <div class="pc-rev">{meta.receita}</div>
+    </div>
+    <div>
+      <span class={`status-badge ${STATUS_BADGE_CLASS[meta.statusBadge]}`}>{meta.statusBadge}</span>
+    </div>
+  </header>
+
+  <div class="pc-tasks">
+    <h5>Tarefas em andamento</h5>
+    {tarefas.length === 0 && <div class="empty">— sem tarefas abertas</div>}
+    {tarefas.map((t) => (
+      <div class="pc-task">
+        <span class:list={["check", checkClass(t.state)]}></span>
+        <span class="name">{t.title}</span>
+        <span class="agent-pill">
+          {t.assignedKind === "agent" ? nomeAgente(t.assignedTo) : tituloHumano(t.assignedTo)}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <div class="pc-team">
+    <span class="lbl">Time</span>
+    {humanosNoProjeto.slice(0, 8).map((h) => (
+      <AvatarTiny
+        ownerId={h.id}
+        ownerKind="human"
+        iniciais={h.iniciais}
+        kind={KIND_HUMANO[h.id] ?? "exec"}
+        title={h.nome}
+      />
+    ))}
+    {agentesNoProjeto.length > 0 && (
+      <span class="more">+ {agentesNoProjeto.length} agentes IA</span>
+    )}
+  </div>
+
+  <div class="pc-actions">
+    <a class="pc-btn primary" href={`/projetos/${projetoId}`}>Abrir</a>
+    <button class="pc-btn" type="button" data-action="add-task">+ Tarefa</button>
+    {podeConvidar && meta.showCliente && (
+      <button class="pc-btn" type="button" data-action="invite-client">Convidar cliente</button>
+    )}
+  </div>
+</article>
+
+<style>
+  .pc-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 1px 2px rgba(0,0,0,.05), 0 8px 24px -12px rgba(0,0,0,.18);
+    display: flex; flex-direction: column;
+  }
+  .pc-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-line);
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .pc-letter { font-size: 24px; font-weight: 600; line-height: 1; flex: 0 0 auto; }
+  .pc-info { flex: 1; min-width: 0; }
+  .pc-name { font-size: 14px; font-weight: 600; margin: 0; }
+  .pc-status { font-size: 11.5px; color: var(--color-soft); margin-top: 2px; }
+  .pc-rev { font-size: 11px; color: var(--color-faint); margin-top: 2px; }
+
+  .pc-tasks { padding: 10px 16px; flex: 1; min-height: 120px; }
+  .pc-tasks h5 {
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--color-faint); margin: 0 0 6px;
+  }
+  .pc-tasks .empty { font-size: 12px; color: var(--color-faint); padding: 4px 0; }
+  .pc-task { display: flex; gap: 8px; padding: 5px 0; font-size: 12px; align-items: center; }
+  .pc-task .check {
+    width: 13px; height: 13px;
+    border-radius: 3px;
+    border: 1.5px solid var(--color-line-strong);
+    flex: 0 0 13px;
+  }
+  .pc-task .check.done  { background: #16a34a; border-color: #16a34a; }
+  .pc-task .check.doing { border-color: var(--color-info-border); background: var(--color-info-bg); }
+  .pc-task .check.crit  { border-color: #dc2626; background: var(--color-danger-bg); }
+  .pc-task .name {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pc-task .agent-pill {
+    font-size: 10px; color: var(--color-faint);
+    padding: 1px 5px; border-radius: 4px;
+    background: rgba(0,0,0,.04);
+  }
+
+  .pc-team {
+    padding: 10px 16px;
+    border-top: 1px dashed var(--color-line);
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .pc-team .lbl {
+    font-size: 10.5px; color: var(--color-faint);
+    text-transform: uppercase; letter-spacing: .08em; margin-right: 4px;
+  }
+  .pc-team .more { font-size: 10.5px; color: var(--color-faint); margin-left: 2px; }
+
+  .pc-actions {
+    padding: 10px 16px;
+    background: var(--color-muted);
+    border-top: 1px solid var(--color-line);
+    display: flex; gap: 6px;
+  }
+  .pc-btn {
+    font-size: 11px; padding: 5px 9px; border-radius: 6px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-surface); color: var(--color-base);
+    cursor: pointer; text-decoration: none;
+  }
+  .pc-btn.primary { background: var(--color-base); color: #fff; border-color: var(--color-base); }
+</style>

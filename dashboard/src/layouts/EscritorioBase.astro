@@ -1,0 +1,31 @@
+---
+import Base from "./Base.astro";
+import EscritorioTabs from "../components/escritorio/EscritorioTabs.astro";
+import { USUARIOS } from "../data/permissoes";
+import { clientScriptVerComo } from "../lib/sessao";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+}
+const { title, subtitle } = Astro.props;
+
+const usuariosJSON = JSON.stringify(
+  Object.fromEntries(
+    Object.entries(USUARIOS).map(([k, u]) => [
+      k,
+      { papel: u.papel, projetosVisiveis: u.projetosVisiveis },
+    ])
+  )
+);
+---
+
+<Base title={title} subtitle={subtitle} wide={true}>
+  <EscritorioTabs />
+  <slot />
+</Base>
+
+<script is:inline define:vars={{ usuariosJSON }}>
+  window.QG_USUARIOS = JSON.parse(usuariosJSON);
+</script>
+<script is:inline set:html={clientScriptVerComo()}></script>

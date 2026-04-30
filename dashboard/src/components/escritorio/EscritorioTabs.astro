@@ -1,0 +1,55 @@
+---
+import { SELETOR_USUARIOS } from "../../data/permissoes";
+
+const path = Astro.url.pathname.replace(/\/$/, "");
+const ativo = (p: string) => path === p;
+
+const tabs = [
+  { href: "/escritorio",                 label: "Decisões",        ix: "1" },
+  { href: "/escritorio/mission-control", label: "Mission Control", ix: "2" },
+  { href: "/escritorio/projetos",        label: "Project Cards",   ix: "3" },
+  { href: "/escritorio/equipe",          label: "Equipe",          ix: "4" },
+  { href: "/escritorio/feed",            label: "Stream",          ix: "5" },
+  { href: "/escritorio/saude",           label: "Health Board",    ix: "6" },
+];
+---
+
+<div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+  <nav class="flex gap-1 overflow-x-auto -mx-1 px-1">
+    {tabs.map((t) => (
+      <a
+        href={t.href}
+        class:list={[
+          "text-[12px] px-3 py-1.5 rounded-md whitespace-nowrap transition-colors",
+          ativo(t.href)
+            ? "bg-info-bg text-info-text font-medium"
+            : "text-soft hover:bg-muted hover:text-base",
+        ]}
+      >
+        <span class="text-[10px] text-faint mr-1">{t.ix}</span>{t.label}
+      </a>
+    ))}
+    <a
+      href="/escritorio/planta"
+      class:list={[
+        "text-[12px] px-3 py-1.5 rounded-md whitespace-nowrap transition-colors text-soft hover:bg-muted hover:text-base",
+        ativo("/escritorio/planta") && "bg-info-bg text-info-text font-medium",
+      ]}
+      title="Vista isométrica antiga"
+    >
+      <span class="text-[10px] text-faint mr-1">·</span>Planta
+    </a>
+  </nav>
+
+  <label class="flex items-center gap-2 text-[12px] text-soft">
+    <span>Ver como:</span>
+    <select
+      data-qg-userselect
+      class="px-2 py-1 text-[12px] rounded-md border border-line bg-surface text-base cursor-pointer"
+    >
+      {SELETOR_USUARIOS.map((u) => (
+        <option value={u.id}>{u.label}</option>
+      ))}
+    </select>
+  </label>
+</div>

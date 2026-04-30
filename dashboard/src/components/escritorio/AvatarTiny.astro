@@ -1,0 +1,43 @@
+---
+import HoverTasks from "./HoverTasks.astro";
+
+interface Props {
+  ownerId: string;
+  ownerKind: "human" | "agent";
+  iniciais: string;
+  kind: "nucleo" | "exec" | "orbit" | "client" | "agent";
+  size?: "tiny" | "mini";
+  title?: string;
+}
+const { ownerId, ownerKind, iniciais, kind, size = "tiny", title } = Astro.props;
+---
+
+<span class:list={["qg-card", "av-i", `s-${size}`, `k-${kind}`]} title={title}>
+  <span class="ini">{iniciais}</span>
+  <HoverTasks ownerId={ownerId} ownerKind={ownerKind} />
+</span>
+
+<style>
+  .av-i {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    color: #fff; font-weight: 700;
+    vertical-align: middle;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 0;
+  }
+  .av-i.s-tiny { width: 22px; height: 22px; font-size: 9px; }
+  .av-i.s-mini { width: 18px; height: 18px; font-size: 8px; }
+  .av-i .ini {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .av-i.k-nucleo .ini { background: var(--color-avatar-socio); }
+  .av-i.k-exec   .ini { background: var(--color-avatar-executor); }
+  .av-i.k-orbit  .ini { background: var(--color-avatar-hibrida); }
+  .av-i.k-client .ini { background: var(--color-avatar-cliente); }
+  .av-i.k-agent  .ini { background: #1a1a18; }
+</style>
