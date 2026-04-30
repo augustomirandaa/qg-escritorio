@@ -44,12 +44,30 @@ import Base from "../layouts/Base.astro";
     </div>
 
     <div class="main" id="eoMain">
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" id="canvasWrap">
         <div class="scene-overlay">
           <div class="badge"><span class="dot"></span>Vista ao vivo</div>
           <div class="badge" id="selectionBadge" style="display:none">Selecionado: <strong id="selectionName" style="margin-left:4px"></strong></div>
         </div>
-        <svg id="floor" class="floor" viewBox="0 0 1500 800" preserveAspectRatio="xMidYMid meet" aria-label="Planta isométrica do Escritório Virtual"></svg>
+
+        <div class="eo-controls" id="eoControls" aria-label="Controles de visualização">
+          <button type="button" data-action="zoom-in" title="Zoom in (wheel)" aria-label="Zoom in">+</button>
+          <button type="button" data-action="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+          <span class="ctrl-sep"></span>
+          <button type="button" data-action="rotate-left" title="Girar esquerda" aria-label="Girar esquerda">↺</button>
+          <button type="button" data-action="rotate-right" title="Girar direita" aria-label="Girar direita">↻</button>
+          <span class="ctrl-sep"></span>
+          <button type="button" data-action="reset" title="Resetar (R)" aria-label="Resetar">⟲</button>
+          <span class="ctrl-state" id="eoCtrlState" title="zoom · ângulo">100% · 0°</span>
+        </div>
+
+        <div class="scene-stage" id="sceneStage">
+          <svg id="floor" class="floor" viewBox="0 0 1500 800" preserveAspectRatio="xMidYMid meet" aria-label="Planta isométrica do Escritório Virtual"></svg>
+        </div>
+
+        <div class="eo-help" aria-hidden="true">
+          <kbd>wheel</kbd> zoom · <kbd>drag</kbd> girar · <kbd>shift+drag</kbd> mover · <kbd>R</kbd> reset
+        </div>
       </div>
 
       <aside class="panel empty" id="panel">
@@ -166,7 +184,60 @@ import Base from "../layouts/Base.astro";
     overflow:hidden;
     box-shadow:var(--eo-shadow-card);
   }
-  .eo svg.floor{display:block; width:100%; height:auto; aspect-ratio: 16/10; max-height:78vh}
+  .eo svg.floor{display:block; width:100%; height:auto; aspect-ratio: 16/10; max-height:78vh; user-select:none; -webkit-user-drag:none}
+
+  .eo .scene-stage{
+    width:100%; height:100%;
+    transform-origin: 50% 50%;
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    transition: transform .08s linear;
+    cursor: grab;
+    will-change: transform;
+  }
+  .eo .scene-stage.is-dragging{ cursor:grabbing; transition:none }
+  .eo .scene-stage.is-panning{ cursor:move; transition:none }
+
+  .eo .eo-controls{
+    position:absolute; right:12px; top:12px;
+    display:flex; align-items:center; gap:4px;
+    background:rgba(255,255,255,.94);
+    border:1px solid var(--eo-line); border-radius:10px;
+    padding:5px 6px;
+    box-shadow:var(--eo-shadow-card);
+    z-index:5;
+    font-family:inherit;
+  }
+  .eo .eo-controls button{
+    width:28px; height:28px; border:0; background:transparent; cursor:pointer;
+    border-radius:6px; font-size:14px; line-height:1; color:var(--eo-ink-soft);
+    display:inline-flex; align-items:center; justify-content:center;
+    transition: background .12s, color .12s;
+  }
+  .eo .eo-controls button:hover{ background:#f3f0e6; color:var(--eo-ink) }
+  .eo .eo-controls button:active{ background:#e6e1d2 }
+  .eo .eo-controls .ctrl-sep{ width:1px; height:18px; background:var(--eo-line); margin:0 2px }
+  .eo .eo-controls .ctrl-state{
+    font-size:10.5px; color:var(--eo-ink-faint);
+    padding:0 8px 0 6px; font-variant-numeric: tabular-nums;
+    border-left:1px solid var(--eo-line); margin-left:4px;
+  }
+
+  .eo .eo-help{
+    position:absolute; left:12px; bottom:12px;
+    background:rgba(255,255,255,.92);
+    border:1px solid var(--eo-line); border-radius:6px;
+    padding:5px 9px; font-size:10.5px;
+    color:var(--eo-ink-faint);
+    pointer-events:none;
+    box-shadow:var(--eo-shadow-card);
+  }
+  .eo .eo-help kbd{
+    background:var(--eo-bg);
+    border:.5px solid var(--eo-line);
+    padding:1px 5px; border-radius:3px;
+    font-family: inherit; font-size:10px; color:var(--eo-ink-soft);
+    margin-right:1px;
+  }
   .eo .scene-overlay{position:absolute; left:14px; top:14px; display:flex; gap:6px; align-items:center; pointer-events:none}
   .eo .scene-overlay .badge{
     background:rgba(255,255,255,.92); border:1px solid var(--eo-line); border-radius:999px;
@@ -1200,6 +1271,155 @@ function tickLive(){
   ts.textContent = 'há '+n+'s';
 }
 setInterval(tickLive, 1000);
+
+// ─── Zoom + Rotate + Pan ───────────────────────────────────────────────
+(function setupSceneInteractions(){
+  const wrap = document.getElementById('canvasWrap');
+  const stage = document.getElementById('sceneStage');
+  const stateLabel = document.getElementById('eoCtrlState');
+  const controls = document.getElementById('eoControls');
+  if (!wrap || !stage) return;
+
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 3;
+  const ZOOM_STEP_WHEEL = 0.08;
+  const ZOOM_STEP_BTN = 0.2;
+  const ROTATE_STEP_BTN = 15;
+  const ROTATE_SENSITIVITY = 0.45; // graus por px de drag
+  const PAN_SENSITIVITY = 1;       // px por px (1:1)
+  const DRAG_THRESHOLD = 5;        // px antes de tratar como drag
+
+  let zoom = 1, rotate = 0, panX = 0, panY = 0;
+  let dragging = false, panMode = false;
+  let startX = 0, startY = 0, originX = 0, originY = 0, originRotate = 0;
+
+  function apply(){
+    stage.style.transform = `translate(${panX}px, ${panY}px) rotate(${rotate}deg) scale(${zoom})`;
+    if (stateLabel) {
+      const z = Math.round(zoom * 100);
+      const r = ((rotate % 360) + 360) % 360;
+      stateLabel.textContent = `${z}% · ${Math.round(r)}°`;
+    }
+  }
+
+  function reset(){
+    zoom = 1; rotate = 0; panX = 0; panY = 0;
+    apply();
+  }
+
+  // Wheel = zoom (zoom-to-cursor, mantém o ponto sob o cursor)
+  wrap.addEventListener('wheel', function(e){
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP_WHEEL : ZOOM_STEP_WHEEL;
+    const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom + delta));
+    if (next === zoom) return;
+    zoom = next;
+    apply();
+  }, { passive: false });
+
+  // Drag (mouse) = rotate; Shift+drag = pan
+  stage.addEventListener('mousedown', function(e){
+    if (e.button !== 0) return; // só botão esquerdo
+    dragging = true;
+    panMode = e.shiftKey;
+    startX = e.clientX; startY = e.clientY;
+    originX = panX; originY = panY; originRotate = rotate;
+    stage.classList.add(panMode ? 'is-panning' : 'is-dragging');
+  });
+
+  window.addEventListener('mousemove', function(e){
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dist = Math.hypot(dx, dy);
+    if (dist < DRAG_THRESHOLD) return; // ainda pode ser clique simples
+    if (panMode) {
+      panX = originX + dx * PAN_SENSITIVITY;
+      panY = originY + dy * PAN_SENSITIVITY;
+    } else {
+      rotate = originRotate + dx * ROTATE_SENSITIVITY;
+    }
+    apply();
+  });
+
+  function endDrag(){
+    dragging = false; panMode = false;
+    stage.classList.remove('is-dragging', 'is-panning');
+  }
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseleave', endDrag);
+
+  // Suprime click depois de drag real (pra não selecionar item por engano)
+  stage.addEventListener('click', function(e){
+    if (Math.hypot(e.clientX - startX, e.clientY - startY) >= DRAG_THRESHOLD) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  // Touch básico (1 dedo = rotate, 2 dedos = pinch zoom)
+  let touchStart = null, lastDist = 0;
+  stage.addEventListener('touchstart', function(e){
+    if (e.touches.length === 1) {
+      touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, rotate };
+    } else if (e.touches.length === 2) {
+      lastDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+  stage.addEventListener('touchmove', function(e){
+    if (e.touches.length === 1 && touchStart) {
+      const dx = e.touches[0].clientX - touchStart.x;
+      rotate = touchStart.rotate + dx * ROTATE_SENSITIVITY;
+      apply();
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (lastDist > 0) {
+        const scale = dist / lastDist;
+        zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * scale));
+        apply();
+      }
+      lastDist = dist;
+    }
+  }, { passive: true });
+  stage.addEventListener('touchend', function(){
+    touchStart = null; lastDist = 0;
+  });
+
+  // Buttons
+  if (controls) {
+    controls.addEventListener('click', function(e){
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      if (action === 'zoom-in') zoom = Math.min(ZOOM_MAX, zoom + ZOOM_STEP_BTN);
+      else if (action === 'zoom-out') zoom = Math.max(ZOOM_MIN, zoom - ZOOM_STEP_BTN);
+      else if (action === 'rotate-left') rotate -= ROTATE_STEP_BTN;
+      else if (action === 'rotate-right') rotate += ROTATE_STEP_BTN;
+      else if (action === 'reset') { reset(); return; }
+      apply();
+    });
+  }
+
+  // Keyboard
+  window.addEventListener('keydown', function(e){
+    // Só atalhos quando NÃO estiver digitando em input/textarea
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'r' || e.key === 'R') { reset(); }
+    else if (e.key === '+' || e.key === '=') { zoom = Math.min(ZOOM_MAX, zoom + ZOOM_STEP_BTN); apply(); }
+    else if (e.key === '-' || e.key === '_') { zoom = Math.max(ZOOM_MIN, zoom - ZOOM_STEP_BTN); apply(); }
+    else if (e.key === 'ArrowLeft' && (e.shiftKey)) { rotate -= ROTATE_STEP_BTN; apply(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' && (e.shiftKey)) { rotate += ROTATE_STEP_BTN; apply(); e.preventDefault(); }
+  });
+
+  apply();
+})();
 
 document.addEventListener('keydown', function(e){ if (e.key==='Escape') selectEntity(null); });
 })();
