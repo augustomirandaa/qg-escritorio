@@ -25,8 +25,10 @@ export function clientScriptVerComo(): string {
         const visiveis = visiveisDe(uid);
         const podeTudo = visiveis.indexOf('*') >= 0;
         document.querySelectorAll('[data-projeto]').forEach(el => {
-          const id = el.getAttribute('data-projeto');
-          const visivel = podeTudo || visiveis.indexOf(id) >= 0;
+          const raw = el.getAttribute('data-projeto') || '';
+          if (!raw) { el.toggleAttribute('hidden', false); return; }
+          const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+          const visivel = podeTudo || ids.some(id => visiveis.indexOf(id) >= 0);
           el.toggleAttribute('hidden', !visivel);
         });
         document.querySelectorAll('[data-papel-min]').forEach(el => {

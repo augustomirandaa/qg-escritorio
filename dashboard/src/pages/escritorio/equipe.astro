@@ -1,0 +1,191 @@
+---
+import EscritorioBase from "../../layouts/EscritorioBase.astro";
+import PersonaCard from "../../components/escritorio/PersonaCard.astro";
+import { TODAS_PESSOAS, NUCLEO, CLIENTES } from "../../data/pessoas";
+import { AGENTES } from "../../data/agentes";
+import { KIND_HUMANO, STATUS_HUMANO, STATUS_AGENTE } from "../../data/escritorio-meta";
+import { totalTarefasAbertas } from "../../data/tarefas-escritorio";
+import type { AreaKey } from "../../data/types";
+
+const executoresMkt = TODAS_PESSOAS.filter((p) => ["antonio", "bryan", "well", "andressa"].includes(p.id));
+const futuros = [
+  { id: "renan", iniciais: "RN", nome: "Renan", papel: "2ª fase · pendente" },
+  { id: "lucas", iniciais: "LC", nome: "Lucas", papel: "2ª fase · pendente" },
+];
+
+const zonasAgentes: { area: AreaKey; titulo: string; ids: string[] }[] = [
+  { area: "marca",        titulo: "Agentes IA · Marketing",   ids: ["conteudo", "brand-voice", "trafego", "calendario-editorial", "mentor"] },
+  { area: "comercial",    titulo: "Agentes IA · Comercial",   ids: ["pre-venda", "fechamento", "crm-follow-up"] },
+  { area: "diretoria",    titulo: "Agentes IA · Diretoria",   ids: ["ceo", "estrategista", "auditor"] },
+  { area: "tec",          titulo: "Agentes IA · Tec & Dev",   ids: ["construtor", "automacao", "dados"] },
+  { area: "ops",          titulo: "Agentes IA · Operações",   ids: ["logistica-paciente", "eua", "brasil"] },
+  { area: "conhecimento", titulo: "Agentes IA · Biblioteca",  ids: ["curador", "documentador", "financeiro", "juridico"] },
+];
+
+const projetosClientes: Record<string, string> = {
+  cynthia: "A", rey: "A", cassio: "B", thomas: "D", gayanne: "A2", stephsouza: "A3",
+};
+
+function modelosOf(id: string): string[] {
+  const p = TODAS_PESSOAS.find((x) => x.id === id);
+  return p ? p.modelos : [];
+}
+---
+
+<EscritorioBase
+  title="Equipe · Escritório de Pessoas"
+  subtitle="Cada pessoa e agente é um card. Passa o mouse pra ver tarefas. Sócios em destaque, executores agrupados, agentes IA por zona."
+>
+  <div class="ep-grid">
+    <!-- Núcleo -->
+    <section class="ep-zone zone-leadership">
+      <header class="ep-zone-h">
+        <span class="swatch" style="background: var(--color-avatar-socio)"></span>
+        <h3>Núcleo · Sócios</h3>
+        <span class="badge-c">{NUCLEO.length} humanos</span>
+      </header>
+      <div class="ep-row">
+        {NUCLEO.map((p) => (
+          <div data-projeto={p.modelos.join(",")} data-projeto-list={p.modelos.join(",")}>
+            <PersonaCard
+              ownerId={p.id}
+              ownerKind="human"
+              iniciais={p.iniciais}
+              nome={p.nome}
+              papel={`${p.papel.split("·")[0].trim()} · ${p.modelos.join("/")}`}
+              kind="nucleo"
+              status={STATUS_HUMANO[p.id] ?? "online"}
+              badgeUrgent={totalTarefasAbertas(p.id) >= 4}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Executores Marketing + Atendimento -->
+    <section class="ep-zone">
+      <header class="ep-zone-h">
+        <span class="swatch" style="background: var(--color-avatar-executor)"></span>
+        <h3>Executores · Marketing & Atendimento</h3>
+        <span class="badge-c">{executoresMkt.length} humanos · A/B/F</span>
+      </header>
+      <div class="ep-row">
+        {executoresMkt.map((p) => (
+          <div data-projeto={p.modelos.join(",")}>
+            <PersonaCard
+              ownerId={p.id}
+              ownerKind="human"
+              iniciais={p.iniciais}
+              nome={p.nome}
+              papel={`${p.papel.split("·")[0].trim()} · ${p.modelos.join("/")}`}
+              kind={KIND_HUMANO[p.id] ?? "exec"}
+              status={STATUS_HUMANO[p.id] ?? "online"}
+            />
+          </div>
+        ))}
+        {futuros.map((f) => (
+          <div data-papel-min="diretor">
+            <PersonaCard
+              ownerId={f.id}
+              ownerKind="human"
+              iniciais={f.iniciais}
+              nome={f.nome}
+              papel={f.papel}
+              kind="exec"
+              status="offline"
+              dim={true}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {zonasAgentes.map((zona) => {
+      const agentes = AGENTES.filter((a) => zona.ids.includes(a.id));
+      return (
+        <section class="ep-zone zone-projects">
+          <header class="ep-zone-h">
+            <span class="swatch" style="background: #1a1a18"></span>
+            <h3>{zona.titulo}</h3>
+            <span class="badge-c">{agentes.length} agentes</span>
+          </header>
+          <div class="ep-row">
+            {agentes.map((a) => {
+              const status = STATUS_AGENTE[a.id] ?? (a.fase === "dormente" ? "dormente" : "idle");
+              const dim = a.fase !== "ativo";
+              return (
+                <div data-projeto={a.modelos.join(",")}>
+                  <PersonaCard
+                    ownerId={a.id}
+                    ownerKind="agent"
+                    iniciais={a.nome.slice(0, 2).toUpperCase()}
+                    nome={a.nome}
+                    papel={`P${a.prioridade ?? "-"} · ${a.modelos.slice(0, 4).join("/")}${a.modelos.length > 4 ? "+" : ""}`}
+                    kind="agent"
+                    status={status as any}
+                    dim={dim}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      );
+    })}
+
+    <!-- Clientes -->
+    <section class="ep-zone">
+      <header class="ep-zone-h">
+        <span class="swatch" style="background: var(--color-avatar-cliente)"></span>
+        <h3>Clientes</h3>
+        <span class="badge-c">{CLIENTES.length} contatos</span>
+      </header>
+      <div class="ep-row">
+        {CLIENTES.map((c) => (
+          <div data-projeto={projetosClientes[c.id] ?? ""}>
+            <PersonaCard
+              ownerId={c.id}
+              ownerKind="human"
+              iniciais={c.iniciais}
+              nome={c.nome.split("·")[0].trim()}
+              papel={`${(projetosClientes[c.id] ?? "?")} · ${(modelosOf(c.id)[0] ?? "—")}`}
+              kind="client"
+              status="offline"
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+</EscritorioBase>
+
+<style>
+  .ep-grid { display: flex; flex-direction: column; gap: 18px; }
+
+  .ep-zone {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .ep-zone.zone-projects   { background: linear-gradient(180deg, #fbf9f3 0%, var(--color-surface) 100%); }
+  .ep-zone.zone-leadership { background: linear-gradient(180deg, #f4f7ff 0%, var(--color-surface) 100%); }
+
+  .ep-zone-h {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 10px;
+  }
+  .ep-zone-h h3 {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--color-soft); margin: 0;
+  }
+  .ep-zone-h .badge-c {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 999px;
+    background: rgba(0,0,0,.05); color: var(--color-soft);
+  }
+  .ep-zone-h .swatch { width: 9px; height: 9px; border-radius: 50%; }
+
+  .ep-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ep-row > div { flex: 0 1 auto; }
+</style>
