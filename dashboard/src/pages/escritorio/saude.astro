@@ -1,0 +1,232 @@
+---
+import EscritorioBase from "../../layouts/EscritorioBase.astro";
+import AvatarTiny from "../../components/escritorio/AvatarTiny.astro";
+import { ORDEM_PROJETOS, META_PROJETOS, SAUDE_COR, SAUDE_LABEL, STATUS_BADGE_CLASS, KIND_HUMANO, STATUS_HUMANO, STATUS_AGENTE } from "../../data/escritorio-meta";
+import { TODAS_PESSOAS, NUCLEO } from "../../data/pessoas";
+import { AGENTES } from "../../data/agentes";
+import { tarefasAbertasDoProjeto, totalTarefasAbertas, tarefasDe } from "../../data/tarefas-escritorio";
+import type { ProjetoId } from "../../data/types";
+
+function timeDoProjeto(id: ProjetoId) {
+  return TODAS_PESSOAS.filter((p) => p.modelos.includes(id)).slice(0, 6);
+}
+
+const agentesDestaque = AGENTES.filter((a) =>
+  ["pre-venda", "conteudo", "automacao", "auditor", "mentor"].includes(a.id)
+);
+
+const humanosDestaque = [...NUCLEO, ...TODAS_PESSOAS.filter((p) => ["antonio", "andressa", "bryan"].includes(p.id))];
+
+function statusAgente(id: string): { label: string; dot: string; live?: boolean } {
+  const s = STATUS_AGENTE[id];
+  if (s === "running") return { label: "rodando", dot: "#16a34a", live: true };
+  if (s === "dormente") return { label: "dormente", dot: "#9aa0a6" };
+  if (id === "auditor") return { label: "flagging", dot: "#d97706" };
+  return { label: "idle", dot: "#9aa0a6" };
+}
+
+function statusHumanoDot(id: string): { label: string; cor: string } {
+  const s = STATUS_HUMANO[id] ?? "online";
+  if (s === "online")  return { label: "online",  cor: "#16a34a" };
+  if (s === "busy")    return { label: "ocupado", cor: "#d97706" };
+  return { label: "offline", cor: "#9aa0a6" };
+}
+
+function proxima(id: string): string {
+  const t = tarefasDe(id).filter((t) => t.state !== "concluida")[0];
+  return t ? t.title : "—";
+}
+---
+
+<EscritorioBase
+  title="Health Board"
+  subtitle="Tabela compacta · escan rápido. Linha por projeto · 2ª tabela · agentes IA · 3ª · humanos. Tudo num lugar."
+>
+  <div class="hb-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Projeto</th>
+          <th>Saúde</th>
+          <th>Status</th>
+          <th>Receita</th>
+          <th>Agentes</th>
+          <th>Tarefas</th>
+          <th>Equipe</th>
+          <th>Última atividade</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {ORDEM_PROJETOS.map((id) => {
+          const m = META_PROJETOS[id];
+          const tarefas = tarefasAbertasDoProjeto(id);
+          const criticas = tarefas.filter((t) => t.state === "critica").length;
+          const time = timeDoProjeto(id);
+          const rowDim = m.saude === "dormente";
+          const rowCrit = m.saude === "critico";
+          return (
+            <tr
+              data-projeto={id}
+              class:list={[rowDim && "row-dim", rowCrit && "row-crit"]}
+            >
+              <td><span class="hb-letter">{m.letra}</span><span class="hb-name">{m.apelido}</span></td>
+              <td><span class="hb-health"><span class="dot" style={`background:${SAUDE_COR[m.saude]}`}></span>{SAUDE_LABEL[m.saude]}</span></td>
+              <td><span class={`status-badge ${STATUS_BADGE_CLASS[m.statusBadge]}`}>{m.statusBadge}</span></td>
+              <td>{m.receita.split("·")[0].trim()}</td>
+              <td><span class="hb-pill">{m.agentesAtivos}/{m.agentesTotal}{m.agentesAtivos === m.agentesTotal ? " ✓" : ""}</span></td>
+              <td>
+                <span class="hb-pill">{tarefas.length} abertas</span>
+                {criticas > 0 && <span class="hb-pill crit">{criticas} crítica{criticas === 1 ? "" : "s"}</span>}
+              </td>
+              <td class="hb-team">
+                {time.length === 0 && <span class="hb-mute">—</span>}
+                {time.map((p) => (
+                  <AvatarTiny
+                    ownerId={p.id}
+                    ownerKind="human"
+                    iniciais={p.iniciais}
+                    kind={KIND_HUMANO[p.id] ?? "exec"}
+                    size="mini"
+                    title={p.nome}
+                  />
+                ))}
+              </td>
+              <td>{m.ultimaAtividade} · {m.ultimaAtividadeAutor}</td>
+              <td>
+                {m.acaoLabel
+                  ? <a class:list={["hb-action", rowCrit && "crit"]} href={m.acaoLink ?? "#"}>{m.acaoLabel}</a>
+                  : <span class="hb-mute">—</span>
+                }
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hb-side">
+    <div class="hb-table">
+      <table>
+        <thead>
+          <tr><th>Agente IA</th><th>Status</th><th>Projetos</th><th>Tarefas</th><th>Sucesso</th></tr>
+        </thead>
+        <tbody>
+          {agentesDestaque.map((a) => {
+            const s = statusAgente(a.id);
+            const sucesso = a.id === "automacao" ? "98%"
+              : a.id === "conteudo" ? "91%"
+              : a.id === "auditor" ? "100%"
+              : a.id === "pre-venda" ? "84%"
+              : "—";
+            const cnt = totalTarefasAbertas(a.id);
+            return (
+              <tr data-projeto={a.modelos.join(",")} class:list={[s.label === "dormente" && "row-dim"]}>
+                <td><b>{a.nome}</b></td>
+                <td>
+                  <span class="hb-health">
+                    <span class:list={["dot", s.live && "live"]} style={`background:${s.dot}`}></span>{s.label}
+                  </span>
+                </td>
+                <td>{a.modelos.slice(0, 3).join(", ")}{a.modelos.length > 3 ? "…" : ""}</td>
+                <td>{cnt > 0 ? `${cnt} ativas` : "—"}</td>
+                <td>{sucesso}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hb-table">
+      <table>
+        <thead>
+          <tr><th>Humano</th><th>Status</th><th>Tarefas hoje</th><th>Próxima</th></tr>
+        </thead>
+        <tbody>
+          {humanosDestaque.map((p) => {
+            const s = statusHumanoDot(p.id);
+            const cnt = totalTarefasAbertas(p.id);
+            return (
+              <tr data-projeto={p.modelos.join(",")}>
+                <td class="hb-name-cell">
+                  <AvatarTiny ownerId={p.id} ownerKind="human" iniciais={p.iniciais} kind={KIND_HUMANO[p.id] ?? "exec"} size="mini" />
+                  <b>{p.nome.split(" ")[0]}</b>
+                </td>
+                <td><span class="dot-inline" style={`background:${s.cor}`}></span> {s.label}</td>
+                <td>{cnt} aberta{cnt === 1 ? "" : "s"}</td>
+                <td class="hb-next">{proxima(p.id)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</EscritorioBase>
+
+<style>
+  .hb-table {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .hb-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .hb-table th {
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--color-faint);
+    padding: 10px 12px; text-align: left;
+    background: var(--color-muted);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .hb-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: middle;
+  }
+  .hb-table tr:last-child td { border-bottom: 0; }
+  .hb-table tr:hover { background: var(--color-muted); cursor: default; }
+  .hb-table tr.row-dim  { opacity: .55; }
+  .hb-table tr.row-crit { background: rgba(252,235,235,.25); }
+
+  .hb-letter { font-size: 18px; font-weight: 600; display: inline-block; min-width: 18px; }
+  .hb-name   { font-size: 12px; color: var(--color-soft); margin-left: 4px; }
+  .hb-health { display: inline-flex; align-items: center; gap: 6px; }
+  .hb-health .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .hb-health .dot.live {
+    box-shadow: 0 0 0 0 rgba(22,163,74,.5);
+    animation: pulseLive 2s ease-out infinite;
+  }
+  @keyframes pulseLive { 0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)} 70%{box-shadow:0 0 0 8px rgba(22,163,74,0)} 100%{box-shadow:0 0 0 0 rgba(22,163,74,0)} }
+
+  .hb-pill {
+    display: inline-block;
+    font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    background: rgba(0,0,0,.05);
+    color: var(--color-soft);
+    margin-right: 4px;
+  }
+  .hb-pill.crit { background: var(--color-danger-bg); color: var(--color-danger-text); }
+
+  .hb-team { white-space: nowrap; }
+  .hb-team > span { margin-right: 2px; }
+  .hb-mute { color: var(--color-faint); font-size: 11px; }
+  .hb-action { font-size: 11px; color: var(--color-info-text); cursor: pointer; text-decoration: none; }
+  .hb-action.crit { color: var(--color-danger-text); }
+  .hb-action:hover { text-decoration: underline; }
+
+  .hb-side {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 900px) { .hb-side { grid-template-columns: 1fr; } }
+
+  .hb-name-cell { display: flex; align-items: center; gap: 6px; }
+  .hb-next { font-size: 12px; color: var(--color-soft); }
+  .dot-inline { display: inline-block; width: 7px; height: 7px; border-radius: 50%; vertical-align: middle; }
+</style>
