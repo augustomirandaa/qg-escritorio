@@ -1,0 +1,161 @@
+---
+import "../../../styles/global.css";
+import ProjectCard from "../../../components/escritorio/ProjectCard.astro";
+import AvatarTiny from "../../../components/escritorio/AvatarTiny.astro";
+import { USUARIOS } from "../../../data/permissoes";
+import { TODAS_PESSOAS } from "../../../data/pessoas";
+import { META_PROJETOS } from "../../../data/escritorio-meta";
+import { FEED } from "../../../data/feed";
+import { tarefasAbertasDoProjeto } from "../../../data/tarefas-escritorio";
+import { VERSAO_LABEL } from "../../../data/versao";
+import type { ProjetoId } from "../../../data/types";
+
+export function getStaticPaths() {
+  return [
+    { params: { id: "cynthia" } },
+    { params: { id: "rey"     } },
+    { params: { id: "cassio"  } },
+    { params: { id: "thomas"  } },
+  ];
+}
+
+const { id } = Astro.params;
+const usuario = USUARIOS[id!];
+const pessoa = TODAS_PESSOAS.find((p) => p.id === id);
+
+if (!usuario || !pessoa) {
+  return Astro.redirect("/escritorio");
+}
+
+const projetoId = (usuario.projetosVisiveis[0] as ProjetoId) || "A";
+const meta = META_PROJETOS[projetoId];
+const feed = FEED.filter((f) => f.projectId === projetoId).slice(0, 8);
+const tarefas = tarefasAbertasDoProjeto(projetoId);
+
+const primeiroNome = pessoa.nome.replace(/^(Dr\.|Dra\.|Sr\.|Sra\.) ?/, "").split(" ")[0];
+const titulo = pessoa.nome.startsWith("Dra.") ? "Dra." : pessoa.nome.startsWith("Dr.") ? "Dr." : "";
+const saudacao = titulo ? `Olá, ${titulo} ${primeiroNome}` : `Olá, ${primeiroNome}`;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>{`${primeiroNome} · Portal do cliente · QG`}</title>
+</head>
+<body class="cliente-body">
+  <div class="cliente-wrap">
+    <header class="cliente-header">
+      <div>
+        <h1>{saudacao}</h1>
+        <p class="sub">Modelo {projetoId} · {meta.apelido}</p>
+      </div>
+      <div class="cliente-tag">{VERSAO_LABEL}</div>
+    </header>
+
+    <section class="cliente-grid">
+      <div>
+        <ProjectCard projetoId={projetoId} />
+
+        <div class="cliente-kpis">
+          <div class="kpi"><div class="v">{tarefas.length}</div><div class="l">tarefas em andamento</div></div>
+          <div class="kpi"><div class="v">{meta.agentesAtivos}</div><div class="l">agentes IA ativos</div></div>
+          <div class="kpi"><div class="v">{meta.ultimaAtividade}</div><div class="l">última atividade</div></div>
+        </div>
+      </div>
+
+      <aside class="cliente-stream">
+        <h3>O que está acontecendo no seu projeto</h3>
+        {feed.length === 0 && <p class="empty">Sem novidades agora · te avisamos quando algo importante chegar.</p>}
+        {feed.map((f) => (
+          <div class="cl-msg">
+            <AvatarTiny
+              ownerId={f.authorId}
+              ownerKind={f.authorKind === "human" ? "human" : "agent"}
+              iniciais={f.authorLabel.slice(0, 2).toUpperCase()}
+              kind={f.authorAvatarKind}
+              size="tiny"
+            />
+            <div class="cl-body">
+              <div class="cl-top"><b>{f.authorLabel}</b><span class="cl-time">{f.timeLabel}</span></div>
+              <div class="cl-text" set:html={f.text}></div>
+            </div>
+          </div>
+        ))}
+
+        <a class="cliente-cta" href="https://wa.me/?text=Oi%20Andressa%2C%20queria%20falar%20sobre%20o%20projeto" target="_blank" rel="noopener">
+          💬 Falar com a equipe
+        </a>
+      </aside>
+    </section>
+
+    <footer class="cliente-foot">
+      Esta é uma vista filtrada · você só vê o que pertence ao seu projeto.
+      Operação rodando 24/7 com agentes IA + time humano.
+    </footer>
+  </div>
+</body>
+</html>
+
+<style>
+  .cliente-body { background: var(--color-canvas); color: var(--color-base); font-family: var(--font-sans); margin: 0; }
+  .cliente-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  .cliente-header {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between;
+    border-bottom: 1px solid var(--color-line);
+    padding-bottom: 14px; margin-bottom: 18px;
+  }
+  .cliente-header h1 { font-size: 22px; font-weight: 500; margin: 0; }
+  .cliente-header .sub { font-size: 13px; color: var(--color-soft); margin-top: 2px; }
+  .cliente-tag { font-size: 11px; color: var(--color-faint); background: var(--color-muted); padding: 4px 10px; border-radius: 6px; }
+
+  .cliente-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 18px;
+  }
+  @media (max-width: 900px) { .cliente-grid { grid-template-columns: 1fr; } }
+
+  .cliente-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  @media (max-width: 540px) { .cliente-kpis { grid-template-columns: 1fr; } }
+  .kpi { background: var(--color-muted); padding: 10px 12px; border-radius: 8px; }
+  .kpi .v { font-size: 18px; font-weight: 600; }
+  .kpi .l { font-size: 10.5px; color: var(--color-faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+  .cliente-stream {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    height: fit-content;
+  }
+  .cliente-stream h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--color-faint); margin: 0 0 10px; }
+  .cliente-stream .empty { font-size: 13px; color: var(--color-soft); padding: 8px 0; }
+  .cl-msg { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px dashed var(--color-line); align-items: flex-start; }
+  .cl-msg:last-of-type { border-bottom: 0; }
+  .cl-body { flex: 1; min-width: 0; }
+  .cl-top { display: flex; gap: 8px; align-items: baseline; }
+  .cl-top b { font-size: 12.5px; font-weight: 600; }
+  .cl-time { font-size: 11px; color: var(--color-faint); margin-left: auto; }
+  .cl-text { font-size: 12.5px; line-height: 1.45; color: var(--color-base); margin-top: 3px; }
+
+  .cliente-cta {
+    display: block; margin-top: 14px;
+    padding: 10px 12px; border-radius: 8px;
+    background: #25d366; color: #fff;
+    font-size: 13px; font-weight: 500;
+    text-align: center; text-decoration: none;
+  }
+  .cliente-cta:hover { filter: brightness(.96); }
+
+  .cliente-foot {
+    margin-top: 22px; padding: 12px 14px;
+    background: var(--color-muted);
+    border-radius: 10px;
+    font-size: 12px; color: var(--color-soft);
+    line-height: 1.55;
+  }
+</style>

@@ -43,9 +43,12 @@ export function clientScriptVerComo(): string {
           const lista = (el.getAttribute('data-visibilidade')||'').split(',').filter(Boolean);
           el.toggleAttribute('hidden', lista.length>0 && lista.indexOf(uid)<0);
         });
-        if(uid === 'cynthia' && location.pathname === '/escritorio/' || uid === 'cynthia' && location.pathname === '/escritorio'){
-          // cliente cai no portal
-          location.href = '/escritorio/cliente/cynthia';
+        const u2 = window.QG_USUARIOS && window.QG_USUARIOS[uid];
+        const isCliente = u2 && u2.papel === 'cliente';
+        const path = location.pathname.replace(/\\/$/, '');
+        const inCliente = path.indexOf('/escritorio/cliente/') === 0;
+        if (isCliente && !inCliente && (path === '/escritorio' || path.indexOf('/escritorio/') === 0)) {
+          location.href = '/escritorio/cliente/' + uid;
           return;
         }
       }
