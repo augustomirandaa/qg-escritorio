@@ -8,8 +8,8 @@
  *   - minor (x.Y.0): página nova, feature nova, dado novo grande
  *   - major (X.0.0): mudança fundamental (ex.: live mode com backend)
  */
-export const VERSAO = "v0.4.0";
-export const VERSAO_DATA = "2026-04-29";
+export const VERSAO = "v0.5.0";
+export const VERSAO_DATA = "2026-04-30";
 export const VERSAO_LABEL = `${VERSAO} · ${formatarData(VERSAO_DATA)}`;
 
 function formatarData(iso: string): string {

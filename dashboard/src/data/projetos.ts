@@ -53,6 +53,92 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
       "Conversa de migração com a Cintia ainda pendente",
     ],
   },
+  A2: {
+    id: "A2",
+    titulo: "A2 · Avak Dental · Growth Partner EUA",
+    apelido: "Avak Dental",
+    meta: "Dr. Gayanne · contrato a definir",
+    status: "Em estruturação",
+    statusClass: "warning",
+    tip: "Novo cliente growth partner (variante do Modelo A). Estrutura espelhada da Lumina; contrato, operação e métricas ainda a estruturar.",
+    briefing: {
+      contexto: "Augusto entra como growth partner do Dr. Gayanne na Avak Dental nos EUA — segundo cliente no padrão Lumina. Estrutura operacional e contratual ainda em formação; espelha o playbook da Lumina como ponto de partida.",
+      objetivo: "Replicar o sucesso operacional da Lumina: instalar pipeline de pacientes, atendimento WhatsApp, ads, conteúdo. Estabilizar receita recorrente em 90 dias.",
+      momento: "Onboarding · contrato sendo estruturado · time da Lumina possivelmente compartilhado nos primeiros meses até se ter clareza de carga · sem campanhas rodando ainda.",
+    },
+    humanos: [
+      { iniciais: "AU", tipo: "socio", nome: "Augusto", papel: "lead estratégico · growth partner" },
+      { iniciais: "GA", tipo: "cliente", nome: "Dr. Gayanne", papel: "cliente · Avak Dental (EUA)" },
+      { iniciais: "PA", tipo: "socio", nome: "Pablo", papel: "gestor de marketing (a confirmar dedicação)" },
+    ],
+    agentes: [
+      { nome: "CRM & Follow-up", area: "comercial", funcao: "Pipeline da Avak Dental · espelhado da Lumina" },
+      { nome: "Tráfego", area: "marca", funcao: "Configurar campanhas Meta Ads · benchmark inicial Lumina" },
+      { nome: "EUA", area: "ops", funcao: "Context expert mercado americano (clínicas, paciente, regulação)" },
+      { nome: "Pré-venda", area: "comercial", funcao: "Qualifica leads · BANT/SPIN, agenda calls" },
+      { nome: "Conteúdo", area: "marca", funcao: "Roteiros e copy adaptados ao posicionamento da Avak" },
+      { nome: "Documentador", area: "conhecimento", funcao: "Documentar o que difere da Lumina · base do playbook A2", dormente: false },
+    ],
+    conexoes: [
+      { tipo: "whatsapp", nome: "WhatsApp Augusto ↔ Dr. Gayanne", descricao: "Canal direto com o sócio · alinhamento e decisões.", status: "conectado", responsavelId: "augusto" },
+      { tipo: "instagram", nome: "Instagram Avak Dental", descricao: "Conta a integrar · conteúdo orgânico planejado.", status: "pendente" },
+      { tipo: "meta-ads", nome: "Meta Ads · Avak Dental", descricao: "Campanhas a configurar · acesso de admin/analista a obter.", status: "planejado" },
+      { tipo: "whatsapp", nome: "WhatsApp Business · atendimento", descricao: "Inbound de pacientes · canal a montar.", status: "planejado" },
+      { tipo: "crm", nome: "CRM de pacientes", descricao: "Pipeline de leads · ferramenta a definir.", status: "planejado" },
+    ],
+    tarefas: [
+      { titulo: "Fechar contrato com Dr. Gayanne", responsavelId: "augusto", status: "pendente", prioridade: "alta", porQue: "Sem contrato assinado, não há previsibilidade de receita nem de escopo." },
+      { titulo: "Mapear o que muda em relação à Lumina (vertical, ticket, geografia)", responsavelId: "augusto", status: "pendente", prioridade: "alta", porQue: "Cada clínica tem nuance própria · ignorar isso = aplicar playbook errado." },
+      { titulo: "Pegar acesso ao Instagram + Facebook + Meta Ads da Avak", responsavelId: "augusto", status: "pendente", porQue: "Sem acesso, não há como ligar marketing nem reportar." },
+      { titulo: "Decidir quem opera (time Lumina compartilhado vs novo)", responsavelId: "augusto", status: "pendente", porQue: "Operar com 2 clínicas no mesmo time pode estourar capacidade · decidir antes de prometer prazos." },
+    ],
+    riscos: [
+      "Operar 2 clínicas com mesmo time = risco de degradar Lumina (a base de receita)",
+      "Sem playbook formalizado da Lumina, replicar fica artesanal · documentação atrasa onboarding",
+      "Contrato espelhado da Lumina pode não fazer sentido pra outro vertical/ticket · revisar termos",
+    ],
+  },
+  A3: {
+    id: "A3",
+    titulo: "A3 · @drstephsouza · Growth Partner",
+    apelido: "@drstephsouza",
+    meta: "Dr. Steph Souza · contrato a definir",
+    status: "Em estruturação",
+    statusClass: "warning",
+    tip: "Terceiro cliente growth partner (variante do Modelo A). Operação a estruturar · espelha o playbook da Lumina.",
+    briefing: {
+      contexto: "Augusto entra como growth partner do Dr. Steph Souza — handle Instagram @drstephsouza. Terceiro cliente no padrão Lumina. Geografia, vertical e ticket a confirmar com o doutor.",
+      objetivo: "Replicar o playbook Lumina · estabilizar pipeline de pacientes e receita recorrente. Validar se o time atual da Lumina absorve mais essa operação ou se precisa novo time.",
+      momento: "Onboarding inicial · contato relacional ativo · sem operação rodando ainda.",
+    },
+    humanos: [
+      { iniciais: "AU", tipo: "socio", nome: "Augusto", papel: "lead estratégico · growth partner" },
+      { iniciais: "ST", tipo: "cliente", nome: "Dr. Steph Souza", papel: "cliente · @drstephsouza" },
+    ],
+    agentes: [
+      { nome: "CRM & Follow-up", area: "comercial", funcao: "Pipeline a estruturar · espelhado da Lumina" },
+      { nome: "Tráfego", area: "marca", funcao: "Avaliar viabilidade de Meta Ads conforme vertical e geografia" },
+      { nome: "EUA", area: "ops", funcao: "Context expert · ativa se cliente operar nos EUA" },
+      { nome: "Pré-venda", area: "comercial", funcao: "Qualifica leads quando pipeline ligar" },
+      { nome: "Conteúdo", area: "marca", funcao: "Roteiros adaptados ao posicionamento do Dr. Steph" },
+    ],
+    conexoes: [
+      { tipo: "whatsapp", nome: "WhatsApp Augusto ↔ Dr. Steph", descricao: "Canal direto · alinhamento de relacionamento.", status: "conectado", responsavelId: "augusto" },
+      { tipo: "instagram", nome: "Instagram @drstephsouza", descricao: "Conta principal · acesso pra ler métricas e ligar ads (a obter).", status: "pendente" },
+      { tipo: "meta-ads", nome: "Meta Ads · @drstephsouza", descricao: "Campanhas a configurar conforme contrato e vertical.", status: "planejado" },
+      { tipo: "crm", nome: "CRM de pacientes", descricao: "A definir conforme escopo do contrato.", status: "planejado" },
+    ],
+    tarefas: [
+      { titulo: "Fechar contrato com Dr. Steph Souza", responsavelId: "augusto", status: "pendente", prioridade: "alta", porQue: "Sem termos definidos, qualquer trabalho operacional vira tempo investido sem clareza de retorno." },
+      { titulo: "Confirmar vertical, geografia e ticket médio do Dr. Steph", responsavelId: "augusto", status: "pendente", prioridade: "alta", porQue: "Define se o playbook Lumina (EUA, alto ticket) cabe direto ou precisa adaptar antes de propor." },
+      { titulo: "Avaliar capacidade de operação (time atual aguenta?)", responsavelId: "augusto", status: "pendente", porQue: "Adicionar 3º cliente sem checar capacidade arrisca degradar Lumina e Avak." },
+    ],
+    riscos: [
+      "Adicionar 3º operação ao time atual sem expandir = sobrecarga · degrada todos",
+      "Vertical/geografia incompatível com playbook Lumina = trabalho de adaptação maior que o esperado",
+      "Sem contrato fechado, esforço operacional vira favor · sem alinhamento de incentivos",
+    ],
+  },
   B: {
     id: "B",
     titulo: "B · Direcionamento de pacientes · Doutores BR",
@@ -259,4 +345,4 @@ export const PROJETOS: Record<ProjetoId, Projeto> = {
   },
 };
 
-export const PROJETO_IDS: ProjetoId[] = ["A", "B", "C", "D", "E", "F"];
+export const PROJETO_IDS: ProjetoId[] = ["A", "A2", "A3", "B", "C", "D", "E", "F"];

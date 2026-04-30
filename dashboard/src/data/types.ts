@@ -1,4 +1,4 @@
-export type ProjetoId = "A" | "B" | "C" | "D" | "E" | "F";
+export type ProjetoId = "A" | "A2" | "A3" | "B" | "C" | "D" | "E" | "F";
 
 export type AreaKey =
   | "diretoria"

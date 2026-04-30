@@ -11,7 +11,7 @@ import { ordenarTarefas, formatarPrazo, hojeISO } from "../../data/tarefa-utils"
 import type { ProjetoId } from "../../data/types";
 
 export function getStaticPaths() {
-  return (["A","B","C","D","E","F"] as ProjetoId[]).map((id) => ({ params: { id } }));
+  return PROJETO_IDS.map((id) => ({ params: { id } }));
 }
 
 const { id } = Astro.params as { id: ProjetoId };

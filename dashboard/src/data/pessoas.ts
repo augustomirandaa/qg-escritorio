@@ -124,6 +124,26 @@ export const CLIENTES: Pessoa[] = [
     saberContextoMacro: false,
     modelos: ["D"],
   },
+  {
+    id: "gayanne",
+    iniciais: "GA",
+    tipo: "cliente",
+    nome: "Dr. Gayanne · Avak Dental",
+    papel: "Cliente · Modelo A2 · clínica EUA",
+    descricao: "Novo cliente growth partner (variante do Modelo A). Avak Dental nos EUA. Contrato e termos a definir · estrutura espelhada da Lumina como ponto de partida.",
+    saberContextoMacro: false,
+    modelos: ["A2"],
+  },
+  {
+    id: "stephsouza",
+    iniciais: "ST",
+    tipo: "cliente",
+    nome: "Dr. Steph Souza · @drstephsouza",
+    papel: "Cliente · Modelo A3 · growth partner",
+    descricao: "Novo cliente growth partner (variante do Modelo A). Handle Instagram @drstephsouza. Contrato e operação a estruturar · espelha o playbook da Lumina.",
+    saberContextoMacro: false,
+    modelos: ["A3"],
+  },
 ];
 
 export const TODAS_PESSOAS = [...NUCLEO, ...EXECUTORES, ...NETWORK, ...CLIENTES];
