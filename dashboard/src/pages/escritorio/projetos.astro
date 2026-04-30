@@ -1,0 +1,58 @@
+---
+import EscritorioBase from "../../layouts/EscritorioBase.astro";
+import ProjectCard from "../../components/escritorio/ProjectCard.astro";
+import { ORDEM_PROJETOS } from "../../data/escritorio-meta";
+---
+
+<EscritorioBase
+  title="Project Cards"
+  subtitle="Cards grandes, um por modelo. Cada card é self-contained: tarefas em andamento, time, ações."
+>
+  <div class="pc-grid">
+    {ORDEM_PROJETOS.map((id) => (
+      <div data-projeto={id}>
+        <ProjectCard projetoId={id} podeConvidar={true} />
+      </div>
+    ))}
+  </div>
+
+  <p class="pc-foot">
+    "Convidar cliente" só aparece pra papel <b>admin</b> ou <b>diretor</b>.
+    Os botões "+ Tarefa" e "Convidar cliente" hoje são stubs (Fase 0 brochure) — vão pra um modal real na Fase 2.
+  </p>
+</EscritorioBase>
+
+<style>
+  .pc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 1100px) { .pc-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 720px)  { .pc-grid { grid-template-columns: 1fr; } }
+
+  .pc-foot {
+    margin-top: 18px; padding: 12px 14px;
+    background: var(--color-muted);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    font-size: 12px; color: var(--color-soft);
+    line-height: 1.55;
+  }
+  .pc-foot b { color: var(--color-base); font-weight: 600; }
+</style>
+
+<script is:inline>
+  document.querySelectorAll('[data-action]').forEach((btn) => {
+    btn.addEventListener('click', (ev) => {
+      const action = btn.getAttribute('data-action');
+      if (action === 'add-task' || action === 'invite-client') {
+        ev.preventDefault();
+        console.log('[projeto-action]', action);
+        const orig = btn.textContent;
+        btn.textContent = '✓ ' + orig;
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      }
+    });
+  });
+</script>
