@@ -44,6 +44,25 @@ const totalSemPrazo = todasTarefas.filter(
 
 const responsaveisIdsComTarefas = Array.from(new Set(todasTarefas.map((t) => t.responsavelId)));
 const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.includes(p.id));
+
+// Resumo por projeto pra alimentar o drawer
+const resumoPorProjeto = PROJETO_IDS.map((pid) => {
+  const p = PROJETOS[pid];
+  const tarefasDoProjeto = todasTarefas.filter((t) => t.__projeto === pid);
+  const abertas = tarefasDoProjeto.filter((t) => t.status !== "feita").length;
+  const atrasadas = tarefasDoProjeto.filter(
+    (t) => t.status !== "feita" && formatarPrazo(t.prazo, hoje)?.urgencia === "atrasada"
+  ).length;
+  return {
+    id: pid,
+    apelido: p.secreto ? `Projeto ${pid}` : p.apelido,
+    titulo: p.titulo,
+    statusClass: p.statusClass,
+    abertas,
+    atrasadas,
+    total: tarefasDoProjeto.length,
+  };
+});
 ---
 
 <Base
@@ -129,6 +148,23 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
 
   <!-- Toolbar: search + filtros + sort + view -->
   <div class="toolbar mb-5 tarefas-globais">
+    <button
+      type="button"
+      class="proj-drawer-btn"
+      data-action="open-drawer"
+      aria-label="Escolher projeto"
+      title="Escolher projeto · atalho P"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      <span class="proj-drawer-lbl" data-active-projeto-lbl>Projetos</span>
+      <kbd class="kbd">p</kbd>
+    </button>
+
     <label class="search-wrap">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="7"/>
@@ -283,6 +319,48 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
   <!-- Toast container -->
   <div class="toast-host" aria-live="polite" aria-atomic="false"></div>
 
+  <!-- Project drawer -->
+  <div class="proj-drawer-backdrop" hidden data-drawer-backdrop></div>
+  <aside class="proj-drawer" hidden data-drawer aria-label="Selecionar projeto">
+    <header class="pd-h">
+      <div>
+        <h3>Projetos</h3>
+        <p class="pd-sub">Escolha um pra filtrar a visão</p>
+      </div>
+      <button type="button" class="pd-close" data-action="close-drawer" aria-label="Fechar">×</button>
+    </header>
+
+    <button type="button" class="pd-item pd-todos" data-pd-pick="">
+      <div class="pd-letter pd-letter-all">★</div>
+      <div class="pd-info">
+        <div class="pd-name">Todos os projetos</div>
+        <div class="pd-meta">{todasTarefas.length} tarefas no total · {pendentes.length} a fazer</div>
+      </div>
+      <span class="pd-active-mark">●</span>
+    </button>
+
+    <div class="pd-divider"></div>
+
+    {resumoPorProjeto.map((r) => (
+      <button type="button" class="pd-item" data-pd-pick={r.id}>
+        <div class={`pd-letter pd-letter-${r.statusClass}`}>{r.id}</div>
+        <div class="pd-info">
+          <div class="pd-name">{r.apelido}</div>
+          <div class="pd-meta">
+            <span>{r.abertas} abertas</span>
+            {r.atrasadas > 0 && <span class="pd-atrasadas">· {r.atrasadas} atrasada{r.atrasadas === 1 ? "" : "s"}</span>}
+            {r.abertas === 0 && r.total === 0 && <span class="pd-vazio">sem tarefas</span>}
+          </div>
+        </div>
+        <span class="pd-active-mark">●</span>
+      </button>
+    ))}
+
+    <div class="pd-foot">
+      <span><kbd>P</kbd> abre · <kbd>Esc</kbd> fecha · <kbd>R</kbd> limpa</span>
+    </div>
+  </aside>
+
   <!-- Help overlay -->
   <div class="help-overlay" hidden data-help>
     <div class="help-card">
@@ -296,6 +374,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
           <tr><td><kbd>e</kbd></td><td>expandir / colapsar focada</td></tr>
           <tr><td><kbd>1</kbd></td><td>ver lista</td></tr>
           <tr><td><kbd>2</kbd></td><td>ver kanban</td></tr>
+          <tr><td><kbd>p</kbd></td><td>abrir/fechar painel de projetos</td></tr>
           <tr><td><kbd>g</kbd> + <kbd>h</kbd></td><td>pular pra "Hoje"</td></tr>
           <tr><td><kbd>g</kbd> + <kbd>a</kbd></td><td>pular pra "Atrasadas"</td></tr>
           <tr><td><kbd>r</kbd></td><td>limpar filtros</td></tr>
@@ -646,6 +725,166 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     display: flex; align-items: center; justify-content: center;
   }
   .help-close:hover { background: var(--color-muted); color: var(--color-base); }
+
+  /* === Project drawer button (toolbar) === */
+  .proj-drawer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 0.5px solid var(--color-line);
+    background: var(--color-surface);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--color-base);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .proj-drawer-btn:hover {
+    background: var(--color-info-bg);
+    color: var(--color-info-text);
+    border-color: var(--color-info-border);
+  }
+  .proj-drawer-btn[data-active="1"] {
+    background: var(--color-info-border);
+    color: #fff;
+    border-color: var(--color-info-border);
+  }
+  .proj-drawer-btn[data-active="1"] .kbd {
+    background: rgba(255,255,255,.18);
+    color: rgba(255,255,255,.85);
+    border-color: rgba(255,255,255,.25);
+  }
+  .proj-drawer-lbl { font-weight: 500; }
+
+  /* === Drawer === */
+  .proj-drawer-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20,20,18,.4);
+    z-index: 1099;
+    animation: fadeIn 0.15s ease-out;
+  }
+  .proj-drawer {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-line);
+    box-shadow: 0 0 40px -10px rgba(0,0,0,.3);
+    z-index: 1100;
+    overflow-y: auto;
+    padding: 20px 18px 12px;
+    display: flex; flex-direction: column;
+    animation: slideInLeft 0.18s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+  .pd-h {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .pd-h h3 { font-size: 14px; font-weight: 600; margin: 0; color: var(--color-base); }
+  .pd-sub { font-size: 11.5px; color: var(--color-soft); margin: 2px 0 0; }
+  .pd-close {
+    width: 28px; height: 28px;
+    border: 0; border-radius: 50%;
+    background: transparent;
+    font-size: 22px; line-height: 1;
+    color: var(--color-faint); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pd-close:hover { background: var(--color-muted); color: var(--color-base); }
+
+  .pd-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 0.5px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: all 0.12s;
+    font-family: inherit;
+    color: var(--color-base);
+    width: 100%;
+  }
+  .pd-item:hover {
+    background: var(--color-muted);
+    border-color: var(--color-line);
+  }
+  .pd-item[aria-pressed="true"] {
+    background: var(--color-info-bg);
+    border-color: var(--color-info-border);
+  }
+  .pd-item[aria-pressed="true"] .pd-active-mark {
+    color: var(--color-info-border);
+    opacity: 1;
+  }
+  .pd-active-mark {
+    margin-left: auto;
+    color: var(--color-info-border);
+    opacity: 0;
+    font-size: 14px;
+    transition: opacity 0.15s;
+  }
+  .pd-letter {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    font-size: 15px; font-weight: 600;
+    color: #fff;
+  }
+  .pd-letter-all      { background: var(--color-base); }
+  .pd-letter-success  { background: var(--color-success-text); }
+  .pd-letter-warning  { background: var(--color-warning-text); }
+  .pd-letter-info     { background: var(--color-info-border); }
+  .pd-letter-neutral  { background: var(--color-faint); }
+  .pd-letter-danger   { background: var(--color-danger-text); }
+
+  .pd-info { flex: 1; min-width: 0; }
+  .pd-name { font-size: 13px; font-weight: 500; color: var(--color-base); }
+  .pd-meta {
+    font-size: 11px;
+    color: var(--color-soft);
+    margin-top: 2px;
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .pd-atrasadas { color: var(--color-danger-text); font-weight: 500; }
+  .pd-vazio { color: var(--color-faint); font-style: italic; }
+
+  .pd-divider {
+    height: 1px;
+    background: var(--color-line);
+    margin: 6px 4px 8px;
+  }
+
+  .pd-foot {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line);
+    font-size: 11px;
+    color: var(--color-faint);
+    text-align: center;
+  }
+  .pd-foot kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 0.5px solid var(--color-line-strong);
+    background: var(--color-muted);
+    color: var(--color-faint);
+  }
 </style>
 
 <script>
@@ -1103,6 +1342,41 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     h.toggleAttribute("hidden", !show);
   }
 
+  // ─── project drawer ───
+  function openDrawer() {
+    const d = document.querySelector<HTMLElement>("[data-drawer]");
+    const b = document.querySelector<HTMLElement>("[data-drawer-backdrop]");
+    if (d) d.toggleAttribute("hidden", false);
+    if (b) b.toggleAttribute("hidden", false);
+  }
+  function closeDrawer() {
+    const d = document.querySelector<HTMLElement>("[data-drawer]");
+    const b = document.querySelector<HTMLElement>("[data-drawer-backdrop]");
+    if (d) d.toggleAttribute("hidden", true);
+    if (b) b.toggleAttribute("hidden", true);
+  }
+  function toggleDrawer() {
+    const d = document.querySelector<HTMLElement>("[data-drawer]");
+    if (!d) return;
+    if (d.hasAttribute("hidden")) openDrawer();
+    else closeDrawer();
+  }
+  function syncDrawer(f: Filtros) {
+    document.querySelectorAll<HTMLElement>(".pd-item").forEach((b) => {
+      b.setAttribute("aria-pressed", b.dataset.pdPick === f.projeto ? "true" : "false");
+    });
+    const btn = document.querySelector<HTMLElement>(".proj-drawer-btn");
+    const lbl = document.querySelector<HTMLElement>("[data-active-projeto-lbl]");
+    if (f.projeto) {
+      const item = document.querySelector<HTMLElement>(`.pd-item[data-pd-pick="${f.projeto}"] .pd-name`);
+      if (lbl) lbl.textContent = `${f.projeto} · ${item?.textContent || "projeto"}`;
+      if (btn) btn.dataset.active = "1";
+    } else {
+      if (lbl) lbl.textContent = "Projetos";
+      if (btn) btn.removeAttribute("data-active");
+    }
+  }
+
   // ─── inicialização ───
   function init() {
     const wrap = document.querySelector<HTMLElement>(".tarefas-globais");
@@ -1131,6 +1405,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
     aplicarSort(f.sort);
     aplicarFiltros(f);
     syncChips(f);
+    syncDrawer(f);
     aplicarView(lerView());
     sincRevertButton();
 
@@ -1139,6 +1414,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       salvarFiltros(f);
       aplicarFiltros(f);
       syncChips(f);
+      syncDrawer(f);
     }
 
     // listeners filtros
@@ -1222,6 +1498,25 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
       const revertBtn = target.closest('[data-action="revert-overrides"]');
       if (revertBtn) { reverterOverrides(); return; }
 
+      // Drawer
+      const openD = target.closest('[data-action="open-drawer"]');
+      if (openD) { toggleDrawer(); return; }
+      const closeD = target.closest('[data-action="close-drawer"]');
+      if (closeD) { closeDrawer(); return; }
+      if (target.matches("[data-drawer-backdrop]")) { closeDrawer(); return; }
+      const pdItem = target.closest<HTMLElement>(".pd-item");
+      if (pdItem) {
+        const pid = pdItem.dataset.pdPick || "";
+        commit({ projeto: pid });
+        if ($proj) $proj.value = pid;
+        const tituloLbl = pid
+          ? (pdItem.querySelector<HTMLElement>(".pd-name")?.textContent || pid)
+          : "todos os projetos";
+        toast(`Filtrando · ${tituloLbl}`, "info");
+        closeDrawer();
+        return;
+      }
+
       // Não interferir com pills de projeto / links / botões internos com data-no-expand
       const noExpand = target.closest("[data-no-expand]");
       if (noExpand) return;
@@ -1279,6 +1574,8 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
 
       if (ev.key === "Escape") {
         if (overlay) { showHelp(false); ev.preventDefault(); return; }
+        const drawer = document.querySelector<HTMLElement>("[data-drawer]:not([hidden])");
+        if (drawer) { closeDrawer(); ev.preventDefault(); return; }
         if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === "search") {
           document.activeElement.blur();
           ev.preventDefault();
@@ -1324,6 +1621,7 @@ const responsaveis = TODAS_PESSOAS.filter((p) => responsaveisIdsComTarefas.inclu
 
       if (ev.key === "1") { aplicarView("lista"); salvarView("lista"); ev.preventDefault(); return; }
       if (ev.key === "2") { aplicarView("kanban"); salvarView("kanban"); ev.preventDefault(); return; }
+      if (ev.key === "p") { toggleDrawer(); ev.preventDefault(); return; }
       if (ev.key === "r") {
         wrap.querySelector<HTMLElement>('[data-filtro="reset"]')?.click();
         ev.preventDefault();
